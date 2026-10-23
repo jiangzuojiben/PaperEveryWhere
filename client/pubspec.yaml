@@ -1,0 +1,34 @@
+name: paperdesk
+description: Online ReadPaper library bridge with session-only data and independent AI.
+publish_to: none
+version: 0.5.0+5
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.4.0
+  pdfrx: ^2.9.0
+  file_picker: ^10.3.10
+  crypto: ^3.0.6
+  uuid: ^4.5.1
+  sqflite: ^2.4.2
+  sqflite_common_ffi: ^2.3.6
+  sqflite_common_ffi_web: ^1.0.0
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^10.0.0
+  flutter_markdown: ^0.7.7
+  flutter_math_fork: ^0.7.4
+  synchronized: ^3.3.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true

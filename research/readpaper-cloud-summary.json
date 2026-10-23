@@ -1,0 +1,329 @@
+{
+  "format": "paperdesk-readpaper-cloud-research-summary-v1",
+  "research_date": "2026-10-22",
+  "tool": {
+    "package": "rea-agents",
+    "version": "6.7.0",
+    "execution": "cached CLI; static analysis; no UI"
+  },
+  "original_bundle_attempt": {
+    "result": "timeout; partial evidence only",
+    "timeout_ms": 90000,
+    "evidence_id": "ev_5bbd282023b8249abc4053c7cf65a1426dcd6abe3c1ec261397c1df9dc8a4b86",
+    "parameters": {
+      "format": "directory",
+      "integrity_policy": "fail",
+      "max_semantic_nodes": 2500,
+      "max_semantic_nodes_per_file": 2500,
+      "max_semantic_unknowns": 100,
+      "max_semantic_unknowns_per_file": 100,
+      "source_paths": [
+        "useVipPayConfig-f9cb04db.js"
+      ],
+      "analysis_timeout_ms": 90000
+    },
+    "sample_sources": [
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "bytes": 2456744,
+        "sha256": "95e0acb5c93e5b5cc83977cc35410a60e9ab2ebc6d45321fde471c2aa1239ecf"
+      },
+      {
+        "file": "index-64368679.js",
+        "bytes": 747122,
+        "sha256": "f01f87252a6c16ed50970c6f67e7b2c5c550cac6c0e4fe61dafcb29f1cfda97d"
+      },
+      {
+        "file": "iconfont-5f81c8a0.js",
+        "bytes": 1694146,
+        "sha256": "a98c311b0a1b48360abc47265b87df099df29a1e457b191f6bffe4477958b4ec"
+      }
+    ]
+  },
+  "focused_analysis": {
+    "result": "success with explicitly partial semantic coverage",
+    "evidence_id": "ev_f5f46351d3a4267368eb22b4c886a0388450a5b3a66bc94e664de19a279ee95d",
+    "root_artifact_sha256": "f8a1c4bf392f679a580f7d6df72d85a9ce07667e888691f557e060c28c027b5e",
+    "parameters": {
+      "format": "directory",
+      "integrity_policy": "fail",
+      "max_semantic_nodes": 2500,
+      "max_semantic_nodes_per_file": 900,
+      "max_semantic_unknowns": 160,
+      "max_semantic_unknowns_per_file": 50,
+      "analysis_timeout_ms": 45000
+    },
+    "declarations": 32,
+    "sample_bytes": 8588,
+    "semantic_nodes": 1459,
+    "semantic_relations": 1324,
+    "semantic_unknowns": 158,
+    "coverage_status": "partial",
+    "coverage_truncated": true,
+    "limitations": [
+      "Original JavaScript is parsed as inert syntax only.",
+      "Locally resolved constants/imports do not prove server acceptance.",
+      "Focused REA samples are derived extracts with omitted dependencies, not complete authenticated original applications.",
+      "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+      "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+      "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+      "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+      "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+      "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+    ]
+  },
+  "static_request_candidates": 157,
+  "source_provenance": [
+    {
+      "file": "iconfont-5f81c8a0.js",
+      "bytes": 1694146,
+      "sha256": "a98c311b0a1b48360abc47265b87df099df29a1e457b191f6bffe4477958b4ec"
+    },
+    {
+      "file": "useVipPayConfig-f9cb04db.js",
+      "bytes": 2456744,
+      "sha256": "95e0acb5c93e5b5cc83977cc35410a60e9ab2ebc6d45321fde471c2aa1239ecf"
+    },
+    {
+      "file": "index-64368679.js",
+      "bytes": 747122,
+      "sha256": "f01f87252a6c16ed50970c6f67e7b2c5c550cac6c0e4fe61dafcb29f1cfda97d"
+    },
+    {
+      "file": "useWordNote-8e5f18ba.js",
+      "bytes": 91503,
+      "sha256": "76580d6cc128ff4b56765ed9aa0ac022b2a3c9a46589a84ca5e22bf4e9bfd5cd"
+    }
+  ],
+  "live_readonly_verification": {
+    "format": "paperdesk-readpaper-cloud-readonly-probe-v1",
+    "checked_at": "2026-10-22T15:40:25.029896+00:00",
+    "session_mode": "current-original-application",
+    "desktop_ui_used": false,
+    "ai_jobs_submitted": 0,
+    "uploads": 0,
+    "token_refresh_attempts": 0,
+    "raw_credentials_saved": false,
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/microService-app-aiKnowledge/aiKnowledge/ts/getTranslateTabList",
+        "name": "translation_channels",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "translateType"
+        ],
+        "channels": [
+          "youdao",
+          "baidu",
+          "idea",
+          "ai"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/microService-app-aiKnowledge/vip/profile",
+        "name": "effective_account_privileges",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "invitationCodeOpen",
+          "taskFinishRecords",
+          "vipPrivilege",
+          "vipRoles",
+          "vipTasks",
+          "vipUserDescription"
+        ],
+        "basis": "vipRoles[0].vipPrivilege; top-level vipPrivilege is not effective",
+        "capability_fields": [
+          "aiReadingDocumentPageCountLimit",
+          "aiTranslateConsumeBeanCount",
+          "aiTranslateEnable",
+          "fullTextTranslatePageCountLimit",
+          "fullTextTranslationCountLimit",
+          "ocrTranslateCountLimit",
+          "polishEnable",
+          "readingAskQuestion",
+          "readingEnable",
+          "wordSelectionTranslateCountLimit"
+        ],
+        "account_values_omitted": true
+      },
+      {
+        "method": "GET",
+        "path": "/readpaper-pay/pay/bean/count",
+        "name": "ai_bean_balance",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "aiBeanCount",
+          "aiBeanCountCostEveryAbstractGeneration",
+          "aiBeanCountCostEveryAbstractRewrite",
+          "aiBeanCountCostEveryAbstractTruingFramework",
+          "aiBeanCountCostEveryAiTranslate",
+          "aiBeanCountCostEveryPolish",
+          "aiBeanCountCostEveryQuesion",
+          "aiBeanCountCostEveryReview",
+          "aiBeanCountCostEveryTitleGeneration",
+          "canCreditRefund",
+          "promptIfAiBeanCostMoreThan",
+          "promptIfAiBeanLeft",
+          "promptIfVipNotEnough",
+          "refundTimeliness"
+        ],
+        "quota_fields": [
+          "aiBeanCount",
+          "aiBeanCountCostEveryQuesion",
+          "aiBeanCountCostEveryAiTranslate"
+        ],
+        "account_values_omitted": true
+      },
+      {
+        "method": "GET",
+        "path": "/microservice-ai-reading/systemQuestion/list",
+        "name": "system_questions",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "items"
+        ],
+        "question_count": 10
+      },
+      {
+        "method": "POST",
+        "path": "/microService-app-aiKnowledge/fullTextTranslate/getRightInfo",
+        "name": "fulltext_translation_rights",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "remainCount",
+          "ruleDesc",
+          "unlockRight"
+        ],
+        "account_values_omitted": true
+      },
+      {
+        "method": "GET",
+        "path": "/microservice-ai-reading/scim/getConfig",
+        "name": "scim_config",
+        "http_status": 200,
+        "status": 1,
+        "code": null,
+        "data_type": "dict",
+        "data_keys": [
+          "canUse",
+          "remainingTimes"
+        ],
+        "capability_fields": [
+          "canUse",
+          "remainingTimes"
+        ],
+        "account_values_omitted": true
+      },
+      {
+        "method": "POST",
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/getById",
+        "name": "paper_detail",
+        "http_status": 404,
+        "status": 404,
+        "code": null,
+        "data_type": "NoneType"
+      },
+      {
+        "method": "GET",
+        "path": "/readpaper-pay/pay/bean/count",
+        "name": "anonymous_ai_bean_control",
+        "http_status": 401,
+        "status": null,
+        "code": 50008,
+        "data_type": "NoneType"
+      }
+    ]
+  },
+  "conclusion": {
+    "dedicated_protocol_adapter_feasible": true,
+    "existing_paperdesk_provider_connected": false,
+    "ai_generation_verified": false,
+    "fulltext_job_verified": false,
+    "credentials_exported": false,
+    "search_and_paper_detail_ready": false,
+    "service_availability": "Determined by the current account role and live service response; account-specific values omitted from this public summary."
+  },
+  "artifacts": {
+    "raw_evidence_directory": ".data\\readpaper-cloud-research-20261022",
+    "original_bundle": "rea-reader-evidence.json",
+    "focused": "rea-focused-evidence.json",
+    "static_inventory": "static-request-inventory.json",
+    "read_only_probe": "cloud-readonly-verification.json"
+  },
+  "pdfid_semantic_trace": {
+    "evidence_id": "ev_d68f2d4254ecca23c9f33388a05323bfdd7075a44b0ccd9bb160b9de2300a7df",
+    "status": "ambiguous",
+    "summary": {
+      "total_seed_matches": 1,
+      "traversed_nodes": 1,
+      "traversed_relations": 0,
+      "traversed_functions": 1,
+      "traversed_modules": 1,
+      "relevant_unknowns": 0
+    },
+    "coverage": {
+      "status": "partial"
+    },
+    "limitations": [
+      "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.",
+      "Candidate relations remain ambiguous and do not establish a resolved semantic path.",
+      "Child-process extraction covers asynchronous node:child_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.",
+      "Configuration extraction covers process.env, process.argv, node:fs reads, and direct logical defaults.",
+      "Event extraction covers EventEmitter-style literal registrations, removals, and dispatch candidates; dynamic names remain unknown.",
+      "Function fingerprints are static candidates; equal digests can remain ambiguous and do not prove behavioral equivalence.",
+      "Local data flow does not claim control-flow-sensitive reaching definitions or arbitrary dynamic property resolution.",
+      "Promise ownership covers explicit unshadowed Promise construction, static factories, aggregation, chaining, and await syntax only.",
+      "Request extraction covers fetch, WebSocket, node:http/node:https construction, direct option fields, and exact local response consumers.",
+      "Resource extraction covers built-in filesystem/network acquisition and exact local close/destroy/end handles.",
+      "Semantic graph reachability is a static inference and does not prove runtime execution.",
+      "Semantic unknown retention reached an effective capacity. Omission coverage counts examined emission occurrences by family and reason, including repeats; it does not count unexamined source frontiers or distinct discarded identities.",
+      "The semantic graph contains static syntax observations and conservative relationship candidates; it does not claim runtime execution.",
+      "Timer extraction covers global or node:timers scheduling and exact local-handle cancellation."
+    ]
+  },
+  "public_web_syntax": {
+    "source": "web-app.cc0e08ce178995f5.js",
+    "sha256": "dbb15099ca0356bb4adf4f6ced542193708e1650b0c76090cb27c04c001dc356",
+    "source_url": "https://nuxt.cdn.readpaper.com/nuxt/app.cc0e08ce178995f5.js",
+    "authority": "supplemental-static-only; not a successful cloud operation",
+    "endpoints": [
+      {
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/search",
+        "offset_python_codepoints": 3836446
+      },
+      {
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/getById",
+        "offset_python_codepoints": 208304
+      },
+      {
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/getReferenceList",
+        "offset_python_codepoints": 209686
+      },
+      {
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/getCitationList",
+        "offset_python_codepoints": 210223
+      },
+      {
+        "path": "/microService-app-aiKnowledge/aiKnowledge/paper/getRelatedPapers",
+        "offset_python_codepoints": 213724
+      }
+    ]
+  }
+}

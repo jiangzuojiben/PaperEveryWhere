@@ -1,0 +1,308 @@
+{
+  "format": "paperdesk-native-ink-research-summary-v1",
+  "date": "2026-10-23",
+  "rea_version": "6.7.0",
+  "evidence_id": "ev_89459f08b89af1b53804fba7c32357f38c67976b66661b320c7e328d3ad39b5d",
+  "parameters": {
+    "format": "auto",
+    "integrity_policy": "fail",
+    "max_semantic_nodes": 3000,
+    "max_semantic_nodes_per_file": 3000,
+    "max_semantic_unknowns": 200,
+    "max_semantic_unknowns_per_file": 200,
+    "analysis_timeout_ms": 45000
+  },
+  "root_artifact_sha256": "f1720a7d6f58357df6c3ee8096e26046ddb4e76f47733fabdfded140f054aa10",
+  "provenance": {
+    "format": "paperdesk-native-ink-static-audit-v1",
+    "sources": [
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "bytes": 2456744,
+        "sha256": "95e0acb5c93e5b5cc83977cc35410a60e9ab2ebc6d45321fde471c2aa1239ecf"
+      },
+      {
+        "file": "index-64368679.js",
+        "bytes": 747122,
+        "sha256": "f01f87252a6c16ed50970c6f67e7b2c5c550cac6c0e4fe61dafcb29f1cfda97d"
+      }
+    ],
+    "slices": [
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "IDEAAnnotateType",
+        "start_utf16": 172412,
+        "end_utf16": 172829,
+        "start_byte": 172726,
+        "end_byte": 173143,
+        "slice_sha256": "c406e7d50bf437988af4b37657b83f9fef21a11f41dc40d9700e82835cecc35f",
+        "wrapper_prefix": "var ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "ToolType",
+        "start_utf16": 172830,
+        "end_utf16": 173260,
+        "start_byte": 173144,
+        "end_byte": 173574,
+        "slice_sha256": "a7db01d01e92ab1d3656298ed723fc5490862b9624b047c4db4e59b00b6061a3",
+        "wrapper_prefix": "var ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "DrawShapeType",
+        "start_utf16": 173261,
+        "end_utf16": 173875,
+        "start_byte": 173575,
+        "end_byte": 174189,
+        "slice_sha256": "52aa1d6a55a4d368c0857fac5555f7109231f60bd3ff4f8f4e96040776298a2b",
+        "wrapper_prefix": "var ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "getIpadUnit",
+        "start_utf16": 173899,
+        "end_utf16": 174045,
+        "start_byte": 174213,
+        "end_byte": 174359,
+        "slice_sha256": "1c2daab4bc4b19e183e1fc6844177bbe8ff3e56f010e32852996eb24fd4be090",
+        "wrapper_prefix": "const ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "createPathList",
+        "start_utf16": 174046,
+        "end_utf16": 175606,
+        "start_byte": 174360,
+        "end_byte": 175920,
+        "slice_sha256": "cfc2074f68bd0931f852bb6c9f8dccc4d14c6bab939bfa111867f15756848ebb",
+        "wrapper_prefix": "",
+        "wrapper_suffix": ""
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "renderHandwrite",
+        "start_utf16": 176093,
+        "end_utf16": 177261,
+        "start_byte": 176407,
+        "end_byte": 177595,
+        "slice_sha256": "4f06e6d79a675f99ffdc34c9897239ceac7e538b9a2ff4a769d02de87ca30677",
+        "wrapper_prefix": "",
+        "wrapper_suffix": ""
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "getByNote",
+        "start_utf16": 567813,
+        "end_utf16": 568360,
+        "start_byte": 568257,
+        "end_byte": 568804,
+        "slice_sha256": "66c470902e114b4b0597538601bbbfc1466995f3023fcfb1bad05061d4fe7b61",
+        "wrapper_prefix": "const ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "getHandwrite",
+        "start_utf16": 568361,
+        "end_utf16": 568635,
+        "start_byte": 568805,
+        "end_byte": 569079,
+        "slice_sha256": "40a4598370fb18b46d0f76f4584554d1ae5b8d58f2935edd4674d5aba0fc2807",
+        "wrapper_prefix": "const ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "deleteHandwrite",
+        "start_utf16": 569303,
+        "end_utf16": 569444,
+        "start_byte": 569747,
+        "end_byte": 569888,
+        "slice_sha256": "cf4e7d20c62375f09cb94c5f6437fe6c4ae0ae55b1c6015d7bb50430f0647ddd",
+        "wrapper_prefix": "const ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "postSaveAnnotation",
+        "start_utf16": 570445,
+        "end_utf16": 570644,
+        "start_byte": 570889,
+        "end_byte": 571088,
+        "slice_sha256": "e1200095bb45238ccc07c45bb80b702f007c009a361611cb804e834424d8b587",
+        "wrapper_prefix": "const ",
+        "wrapper_suffix": ";"
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "symbol": "desktop-onlineSaveAnnotation",
+        "start_utf16": 629838,
+        "end_utf16": 630785,
+        "start_byte": 630346,
+        "end_byte": 631305,
+        "slice_sha256": "620ae35526e2cb2c82e4a6c4f95029f00931d1f0528670034793fa7b27205137",
+        "wrapper_prefix": "class FocusedDesktopWriter extends UnknownBase {",
+        "wrapper_suffix": "}"
+      }
+    ],
+    "calls": [
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "getByNote",
+        "method": "GET",
+        "path_template": "{dynamic}/pdfMark/v3/web/getByNote",
+        "start_utf16": 567853,
+        "end_utf16": 567944
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "getHandwrite",
+        "method": "GET",
+        "path_template": "{dynamic}/pdfMark/v3/web/draw/getByNote",
+        "start_utf16": 568470,
+        "end_utf16": 568584
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "deleteHandwrite",
+        "method": "DELETE",
+        "path_template": "{dynamic}/pdfMark/v2/web/pencil/batch/delete",
+        "start_utf16": 569349,
+        "end_utf16": 569434
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "getHotAnnotations",
+        "method": "GET",
+        "path_template": "{dynamic}/pdfMark/v2/web/hotSelect",
+        "start_utf16": 569493,
+        "end_utf16": 569567
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "postSaveAnnotation",
+        "method": "POST",
+        "path_template": "{dynamic}/pdfMark/v2/web/save",
+        "start_utf16": 570522,
+        "end_utf16": 570629
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "addGroupAnnotation",
+        "method": "POST",
+        "path_template": "{dynamic}/pdfMark/v2/web/save",
+        "start_utf16": 570694,
+        "end_utf16": 570755
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "deleteAnnotation",
+        "method": "DELETE",
+        "path_template": "{dynamic}/pdfMark/v2/web/delete",
+        "start_utf16": 570818,
+        "end_utf16": 570913
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "editAnnotation",
+        "method": "PUT",
+        "path_template": "{dynamic}/pdfMark/v2/web/update",
+        "start_utf16": 570989,
+        "end_utf16": 571051
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "putSortAnnotations",
+        "method": "PUT",
+        "path_template": "{dynamic}/pdfMark/v2/web/sortAnnotation",
+        "start_utf16": 571102,
+        "end_utf16": 571218
+      },
+      {
+        "file": "useVipPayConfig-f9cb04db.js",
+        "owner": "getGroupNotes",
+        "method": "GET",
+        "path_template": "{dynamic}/pdfMark/v2/web/group/fetch/incremental",
+        "start_utf16": 620719,
+        "end_utf16": 620956
+      }
+    ],
+    "limitations": [
+      "Inert static syntax only; does not prove server acceptance.",
+      "Original module imports and initialization omitted; unresolved names remain unknown.",
+      "Absence of a literal route is not proof that a dynamic or native writer cannot exist."
+    ]
+  },
+  "semantic_counts": {
+    "nodes": 1270,
+    "relations": 1129,
+    "unknowns": 200
+  },
+  "semantic_limitations": [
+    "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.",
+    "Child-process extraction covers asynchronous node:child_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.",
+    "Configuration extraction covers process.env, process.argv, node:fs reads, and direct logical defaults.",
+    "Event extraction covers EventEmitter-style literal registrations, removals, and dispatch candidates; dynamic names remain unknown.",
+    "Function fingerprints are static candidates; equal digests can remain ambiguous and do not prove behavioral equivalence.",
+    "Local data flow does not claim control-flow-sensitive reaching definitions or arbitrary dynamic property resolution.",
+    "Promise ownership covers explicit unshadowed Promise construction, static factories, aggregation, chaining, and await syntax only.",
+    "Request extraction covers fetch, WebSocket, node:http/node:https construction, direct option fields, and exact local response consumers.",
+    "Resource extraction covers built-in filesystem/network acquisition and exact local close/destroy/end handles.",
+    "Semantic unknown retention reached an effective capacity. Omission coverage counts examined emission occurrences by family and reason, including repeats; it does not count unexamined source frontiers or distinct discarded identities.",
+    "The semantic graph contains static syntax observations and conservative relationship candidates; it does not claim runtime execution.",
+    "Timer extraction covers global or node:timers scheduling and exact local-handle cancellation."
+  ],
+  "installed_asar_literal_audit": {
+    "format": "paperdesk-asar-native-ink-literal-audit-v1",
+    "sample_name": "app.asar",
+    "sample_sha256": "dcfcc05e97f1b143a90f3e3508b5183523c990ceba2397a79da8a00b0d2c0d60",
+    "text_entries_examined": 731,
+    "entries_containing_literal": {
+      "pencil/batch/save": 0,
+      "pdfMark": 0,
+      "nsDataUrl": 0,
+      "drawModelArray": 0,
+      "handwrite": 0
+    },
+    "limitations": [
+      "Literal search only; no code executed.",
+      "Does not prove absence of dynamically constructed or remote/native implementation."
+    ]
+  },
+  "live_evidence": "artifacts/native-ink-live-research-20261023-attempt1.json",
+  "native_creation_verified": false,
+  "static_observations": [
+    "The enum distinguishes legacy IOSDraw=2 from DrawV2=5.",
+    "Desktop writer forwards selected supported annotations to v2/web/save.",
+    "Handwrite reads webDrawV2.webDrawItems; the source contains a pencil batch-delete call."
+  ],
+  "bounded_live_observations": [
+    {
+      "path": "/pdfMark/v2/ios/save",
+      "authority": "hypothesis validated for legacy metadata only",
+      "type": 2,
+      "known_fields": [
+        "noteId",
+        "pdfId",
+        "paperId",
+        "page",
+        "pencil"
+      ],
+      "result": "acceptance and empty legacy metadata readback confirmed; not a drawable native stroke",
+      "unverified_inner_field_mapping": "pencil.nsDataUrl was empty; this does not prove nonempty URL mapping or drawable-resource upload support"
+    },
+    {
+      "path": "/pdfMark/v2/ios/pencil/batch/save",
+      "authority": "bounded route hypothesis; not statically observed",
+      "result": "HTTP 200 status 0 required-field validation; request envelope remains unknown"
+    }
+  ],
+  "storage": "original business records, cookies, URLs, receipts and test strokes not included; no new business cache",
+  "local_fallback_used": false,
+  "alternative_cloud_storage_used": false
+}

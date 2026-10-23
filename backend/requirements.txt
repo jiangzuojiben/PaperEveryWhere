@@ -1,0 +1,16 @@
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
+sqlalchemy>=2.0,<3
+psycopg[binary]>=3.2,<4
+pydantic-settings>=2.8,<3
+python-multipart>=0.0.20
+httpx>=0.28,<1
+cryptography>=44
+pypdf>=5,<7
+pypdfium2>=4.30,<6
+celery>=5.4,<6
+redis>=5,<7
+boto3>=1.36,<2
+bibtexparser>=1.4,<2
+rispy>=0.9,<1
+reportlab>=4,<6

@@ -1,0 +1,37 @@
+{
+  "status": "provider_timeout",
+  "evidence_id": "ev_12f7d00370d8515882a074e11475e2be546bf7545ad65647e7aab51e781f025f",
+  "subject": {
+    "name": "app.asar",
+    "digest": {
+      "sha256": "dcfcc05e97f1b143a90f3e3508b5183523c990ceba2397a79da8a00b0d2c0d60"
+    },
+    "local_path": "C:\\Program Files (x86)\\ReadPaper\\resources\\app.asar",
+    "format": "asar",
+    "architecture": null
+  },
+  "parameters": {
+    "format": "auto",
+    "integrity_policy": "fail",
+    "max_semantic_nodes": 1500,
+    "max_semantic_nodes_per_file": 600,
+    "max_semantic_unknowns_per_file": 100,
+    "source_paths": [
+      "package.json",
+      "dist/main/index.cjs",
+      "dist/renderer/assets/index.8b96e40e.js"
+    ],
+    "analysis_timeout_ms": 45000
+  },
+  "limitations": [
+    "Caller-selected source analysis leaves 757 inventoried files outside analysis scope. Inventory identity covers the complete artifact; relationships through unselected sources remain unknown.",
+    "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+    "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+    "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+    "Source analysis was interrupted: Analysis operation timed out after 45000ms: analyze_javascript_application",
+    "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+    "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+    "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code.",
+    "dist/main/index.cjs: Analysis operation timed out after 45000ms: analyze_javascript_application"
+  ]
+}
