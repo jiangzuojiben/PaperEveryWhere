@@ -1,0 +1,1755 @@
+{
+  "schema": "vaultdesk-rea-scope-summary-v1",
+  "researchDate": "2026-10-23",
+  "reaVersion": "6.7.0",
+  "applicationVersion": "1.13.7",
+  "sampleSha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+  "appJsSha256": "8efbf581e259cabef4f9c9a34814cfe3c02863757377e56b3603933c50e89898",
+  "evidence": [
+    {
+      "scope": "original-ASAR: package.json and main.js",
+      "evidenceId": "ev_a048f1b4e87af29d1b416e1ec0a35573ce510a521d2bc12e3739dc68b17a15bf",
+      "rawEvidenceSha256": "a33c9457928a47176bd788cc37409f5153a84356ca374fab1ce105c5d148dbaa",
+      "subjectSha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+      "provider": {
+        "id": "rea-javascript-application",
+        "name": "REA JavaScript application analyzer",
+        "version": "1"
+      },
+      "parameters": {
+        "format": "auto",
+        "integrity_policy": "fail",
+        "max_semantic_nodes": 1500,
+        "max_semantic_nodes_per_file": 1500,
+        "max_semantic_unknowns": 300,
+        "max_semantic_unknowns_per_file": 300,
+        "source_paths": [
+          "package.json",
+          "main.js"
+        ],
+        "analysis_timeout_ms": 90000
+      },
+      "statistics": {
+        "relevant_files": 37,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 199990,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 1,
+        "skipped_javascript_files": 0,
+        "visited_ast_nodes": 27491,
+        "findings": 77,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "confidence": "derived",
+      "limitations": [
+        "Caller-selected source analysis leaves 35 inventoried files outside analysis scope. Inventory identity covers the complete artifact; relationships through unselected sources remain unknown.",
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "Electron API identity follows proven lexical module aliases and structurally verified module-namespace interop. Other reassignments, dynamic selections, and visibly overwritten namespace members are unresolved; missing findings do not establish absence. Arbitrary call side effects and runtime registration are not evaluated.",
+        "Electron relationships are derived from inert syntax; runtime registration, reachability, defaults, and enforcement remain unproven.",
+        "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Sender, frame, URL, and origin checks are observations only; REA does not claim that they enforce a complete authorization policy.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    },
+    {
+      "scope": "derived exact app.js slices: plugin constructors/registration and selected cloud helpers/methods",
+      "evidenceId": "ev_e2864ebccbf0d9e2da9924351ded4444dd4fc2c6d015f70c124aa8370a443abc",
+      "rawEvidenceSha256": "e1df730b8c89b98a5efea45a9c1f4454e3f8f83839eca3982c4d906c55f4da8a",
+      "subjectSha256": "f3ca2d9e0bc2ea6388e4265e51b8790327a7057aa5d74923f95add657899b011",
+      "provider": {
+        "id": "rea-javascript-application",
+        "name": "REA JavaScript application analyzer",
+        "version": "1"
+      },
+      "parameters": {
+        "format": "auto",
+        "integrity_policy": "fail",
+        "max_semantic_nodes": 8000,
+        "max_semantic_nodes_per_file": 350,
+        "max_semantic_unknowns": 1500,
+        "max_semantic_unknowns_per_file": 80,
+        "analysis_timeout_ms": 30000
+      },
+      "statistics": {
+        "relevant_files": 57,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 11244,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 57,
+        "skipped_javascript_files": 0,
+        "visited_ast_nodes": 3496,
+        "findings": 0,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "confidence": "derived",
+      "limitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    }
+  ],
+  "registration": {
+    "utf16Start": 3820113,
+    "utf16End": 3820831,
+    "registeredConstructorCount": 31
+  },
+  "plugins": [
+    {
+      "id": "file-explorer",
+      "symbol": "F9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3367820,
+      "constructorUtf16End": 3367922,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "global-search",
+      "symbol": "Z1",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 2653494,
+      "constructorUtf16End": 2653643,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "switcher",
+      "symbol": "wte",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3549352,
+      "constructorUtf16End": 3549535,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "graph",
+      "symbol": "r0",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 2672300,
+      "constructorUtf16End": 2672394,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "backlink",
+      "symbol": "$3",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3002888,
+      "constructorUtf16End": 3003021,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "canvas",
+      "symbol": "m9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3332476,
+      "constructorUtf16End": 3333828,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "outgoing-link",
+      "symbol": "lee",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3411760,
+      "constructorUtf16End": 3411864,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "tag-pane",
+      "symbol": "gne",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3681991,
+      "constructorUtf16End": 3682090,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "footnotes",
+      "symbol": "_9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": false,
+      "constructorUtf16Start": 3391393,
+      "constructorUtf16End": 3391491,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "properties",
+      "symbol": "See",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3442768,
+      "constructorUtf16End": 3442869,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "page-preview",
+      "symbol": "yee",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3439474,
+      "constructorUtf16End": 3439631,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "daily-notes",
+      "symbol": "A9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3352801,
+      "constructorUtf16End": 3352948,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "templates",
+      "symbol": "Mne",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3691364,
+      "constructorUtf16End": 3691567,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "note-composer",
+      "symbol": "nee",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3399606,
+      "constructorUtf16End": 3399765,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "command-palette",
+      "symbol": "E9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3347489,
+      "constructorUtf16End": 3347711,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "slash-command",
+      "symbol": "Mte",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": false,
+      "constructorUtf16Start": 3553617,
+      "constructorUtf16End": 3553761,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "editor-status",
+      "symbol": "L9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3365439,
+      "constructorUtf16End": 3365606,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "bookmarks",
+      "symbol": "k8",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3175728,
+      "constructorUtf16End": 3176021,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "markdown-importer",
+      "symbol": "G9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3391994,
+      "constructorUtf16End": 3392082,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "zk-prefixer",
+      "symbol": "Ane",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3700139,
+      "constructorUtf16End": 3700270,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "random-note",
+      "symbol": "Ete",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3552792,
+      "constructorUtf16End": 3552951,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "outline",
+      "symbol": "mee",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3428254,
+      "constructorUtf16End": 3428382,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "word-count",
+      "symbol": "Fne",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3707511,
+      "constructorUtf16End": 3707800,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "slides",
+      "symbol": "Dte",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3555734,
+      "constructorUtf16End": 3555841,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "audio-recorder",
+      "symbol": "b5",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3074054,
+      "constructorUtf16End": 3074269,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "workspaces",
+      "symbol": "Nne",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": null,
+      "constructorUtf16Start": 3711020,
+      "constructorUtf16End": 3711146,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "file-recovery",
+      "symbol": "B9",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3370178,
+      "constructorUtf16End": 3370374,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "publish",
+      "symbol": "gte",
+      "registrationCondition": "Ab.publish",
+      "defaultOn": null,
+      "constructorUtf16Start": 3536874,
+      "constructorUtf16End": 3537155,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "sync",
+      "symbol": "vne",
+      "registrationCondition": "Ab.sync",
+      "defaultOn": true,
+      "constructorUtf16Start": 3638748,
+      "constructorUtf16End": 3639741,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "bases",
+      "symbol": "h8",
+      "registrationCondition": "unconditional registration",
+      "defaultOn": true,
+      "constructorUtf16Start": 3145495,
+      "constructorUtf16End": 3145611,
+      "enabledAtRuntime": "not-observed"
+    },
+    {
+      "id": "webviewer",
+      "symbol": "R4",
+      "registrationCondition": "rd.isDesktopApp && Ab.webViewer",
+      "defaultOn": false,
+      "constructorUtf16Start": 2926527,
+      "constructorUtf16End": 2926625,
+      "enabledAtRuntime": "not-observed"
+    }
+  ],
+  "endpointLiterals": [
+    {
+      "value": "/user/signup",
+      "utf16Offset": 1168335
+    },
+    {
+      "value": "/user/forgetpass",
+      "utf16Offset": 1168417
+    },
+    {
+      "value": "/user/resendconfirmation",
+      "utf16Offset": 1168492
+    },
+    {
+      "value": "/user/authtoken",
+      "utf16Offset": 1168562
+    },
+    {
+      "value": "/subscription/sync/signup-mobile",
+      "utf16Offset": 1168616
+    },
+    {
+      "value": "/user/signin",
+      "utf16Offset": 1168691
+    },
+    {
+      "value": "/subscription/business",
+      "utf16Offset": 1168759
+    },
+    {
+      "value": "/vault/regions",
+      "utf16Offset": 1168820
+    },
+    {
+      "value": "/vault/list",
+      "utf16Offset": 1168882
+    },
+    {
+      "value": "/vault/create",
+      "utf16Offset": 1168973
+    },
+    {
+      "value": "/vault/migrate",
+      "utf16Offset": 1169089
+    },
+    {
+      "value": "/vault/rename",
+      "utf16Offset": 1169205
+    },
+    {
+      "value": "/vault/share/remove",
+      "utf16Offset": 1169280
+    },
+    {
+      "value": "/vault/access",
+      "utf16Offset": 1169370
+    },
+    {
+      "value": "/publish/create",
+      "utf16Offset": 1169472
+    },
+    {
+      "value": "/publish/delete",
+      "utf16Offset": 1169528
+    },
+    {
+      "value": "/publish/share/invite",
+      "utf16Offset": 1169597
+    },
+    {
+      "value": "/publish/share/remove",
+      "utf16Offset": 1169680
+    },
+    {
+      "value": "/subscription/list",
+      "utf16Offset": 1169763
+    },
+    {
+      "value": "/user/signout",
+      "utf16Offset": 1172330
+    },
+    {
+      "value": "/user/info",
+      "utf16Offset": 1172787
+    },
+    {
+      "value": "/user/pow-challenge",
+      "utf16Offset": 1214378
+    },
+    {
+      "value": "/publish/share/accept",
+      "utf16Offset": 3489098
+    },
+    {
+      "value": "/publish/list",
+      "utf16Offset": 3493227
+    },
+    {
+      "value": "/publish/share/list",
+      "utf16Offset": 3531407
+    },
+    {
+      "value": "/vault/delete",
+      "utf16Offset": 3597943
+    },
+    {
+      "value": "/vault/share/list",
+      "utf16Offset": 3612891
+    },
+    {
+      "value": "/vault/share/invite",
+      "utf16Offset": 3614920
+    }
+  ],
+  "cloudMethods": [
+    {
+      "plugin": "sync",
+      "method": "getRemoteVaultId",
+      "utf16Start": 3639755,
+      "utf16End": 3639815
+    },
+    {
+      "plugin": "sync",
+      "method": "getRemoteVaultName",
+      "utf16Start": 3639816,
+      "utf16End": 3639880
+    },
+    {
+      "plugin": "sync",
+      "method": "setRemoteVaultName",
+      "utf16Start": 3639881,
+      "utf16End": 3640093
+    },
+    {
+      "plugin": "sync",
+      "method": "init",
+      "utf16Start": 3640094,
+      "utf16End": 3641227
+    },
+    {
+      "plugin": "sync",
+      "method": "openChooseRemoteVaultModal",
+      "utf16Start": 3641228,
+      "utf16End": 3641308
+    },
+    {
+      "plugin": "sync",
+      "method": "connectToVault",
+      "utf16Start": 3641309,
+      "utf16End": 3641501
+    },
+    {
+      "plugin": "sync",
+      "method": "onEnable",
+      "utf16Start": 3641502,
+      "utf16End": 3648410
+    },
+    {
+      "plugin": "sync",
+      "method": "onDisable",
+      "utf16Start": 3648411,
+      "utf16End": 3648627
+    },
+    {
+      "plugin": "sync",
+      "method": "onFileMenu",
+      "utf16Start": 3648628,
+      "utf16End": 3648950
+    },
+    {
+      "plugin": "sync",
+      "method": "openStatusIconMenu",
+      "utf16Start": 3648951,
+      "utf16End": 3650369
+    },
+    {
+      "plugin": "sync",
+      "method": "loadData",
+      "utf16Start": 3650370,
+      "utf16End": 3652468
+    },
+    {
+      "plugin": "sync",
+      "method": "saveData",
+      "utf16Start": 3652469,
+      "utf16End": 3653305
+    },
+    {
+      "plugin": "sync",
+      "method": "getDefaultDeviceName",
+      "utf16Start": 3653306,
+      "utf16End": 3653382
+    },
+    {
+      "plugin": "sync",
+      "method": "setup",
+      "utf16Start": 3653383,
+      "utf16End": 3653758
+    },
+    {
+      "plugin": "sync",
+      "method": "unsetup",
+      "utf16Start": 3653759,
+      "utf16End": 3654123
+    },
+    {
+      "plugin": "sync",
+      "method": "clear",
+      "utf16Start": 3654124,
+      "utf16End": 3654402
+    },
+    {
+      "plugin": "sync",
+      "method": "setVaultName",
+      "utf16Start": 3654403,
+      "utf16End": 3654562
+    },
+    {
+      "plugin": "sync",
+      "method": "setPause",
+      "utf16Start": 3654563,
+      "utf16End": 3654776
+    },
+    {
+      "plugin": "sync",
+      "method": "getPause",
+      "utf16Start": 3654777,
+      "utf16End": 3654827
+    },
+    {
+      "plugin": "sync",
+      "method": "changeFilter",
+      "utf16Start": 3654828,
+      "utf16End": 3654961
+    },
+    {
+      "plugin": "sync",
+      "method": "log",
+      "utf16Start": 3654962,
+      "utf16End": 3655036
+    },
+    {
+      "plugin": "sync",
+      "method": "logMerge",
+      "utf16Start": 3655037,
+      "utf16End": 3655121
+    },
+    {
+      "plugin": "sync",
+      "method": "logSkip",
+      "utf16Start": 3655122,
+      "utf16End": 3655247
+    },
+    {
+      "plugin": "sync",
+      "method": "logTags",
+      "utf16Start": 3655248,
+      "utf16End": 3655479
+    },
+    {
+      "plugin": "sync",
+      "method": "scanFiles",
+      "utf16Start": 3655480,
+      "utf16End": 3655816
+    },
+    {
+      "plugin": "sync",
+      "method": "setIgnoreFolders",
+      "utf16Start": 3655817,
+      "utf16End": 3655950
+    },
+    {
+      "plugin": "sync",
+      "method": "setSyncType",
+      "utf16Start": 3655951,
+      "utf16End": 3656145
+    },
+    {
+      "plugin": "sync",
+      "method": "setAllowSpecialFile",
+      "utf16Start": 3656146,
+      "utf16End": 3656369
+    },
+    {
+      "plugin": "sync",
+      "method": "registerEvents",
+      "utf16Start": 3656370,
+      "utf16End": 3656627
+    },
+    {
+      "plugin": "sync",
+      "method": "unregisterEvents",
+      "utf16Start": 3656628,
+      "utf16End": 3656892
+    },
+    {
+      "plugin": "sync",
+      "method": "onFileAdd",
+      "utf16Start": 3656893,
+      "utf16End": 3657362
+    },
+    {
+      "plugin": "sync",
+      "method": "onFileRemove",
+      "utf16Start": 3657363,
+      "utf16End": 3657483
+    },
+    {
+      "plugin": "sync",
+      "method": "onFileRename",
+      "utf16Start": 3657484,
+      "utf16End": 3657752
+    },
+    {
+      "plugin": "sync",
+      "method": "onRaw",
+      "utf16Start": 3657753,
+      "utf16End": 3657912
+    },
+    {
+      "plugin": "sync",
+      "method": "onPushedFile",
+      "utf16Start": 3657913,
+      "utf16End": 3658509
+    },
+    {
+      "plugin": "sync",
+      "method": "canSyncPath",
+      "utf16Start": 3658510,
+      "utf16End": 3658652
+    },
+    {
+      "plugin": "sync",
+      "method": "canSyncLocalFile",
+      "utf16Start": 3658653,
+      "utf16End": 3658787
+    },
+    {
+      "plugin": "sync",
+      "method": "getHost",
+      "utf16Start": 3658788,
+      "utf16End": 3658934
+    },
+    {
+      "plugin": "sync",
+      "method": "setStatus",
+      "utf16Start": 3658935,
+      "utf16End": 3659017
+    },
+    {
+      "plugin": "sync",
+      "method": "getStatus",
+      "utf16Start": 3659018,
+      "utf16End": 3659228
+    },
+    {
+      "plugin": "sync",
+      "method": "failedSync",
+      "utf16Start": 3659229,
+      "utf16End": 3659471
+    },
+    {
+      "plugin": "sync",
+      "method": "requestSync",
+      "utf16Start": 3659472,
+      "utf16End": 3660450
+    },
+    {
+      "plugin": "sync",
+      "method": "getServer",
+      "utf16Start": 3660451,
+      "utf16End": 3660626
+    },
+    {
+      "plugin": "sync",
+      "method": "asyncGetServer",
+      "utf16Start": 3660627,
+      "utf16End": 3662430
+    },
+    {
+      "plugin": "sync",
+      "method": "_sync",
+      "utf16Start": 3662431,
+      "utf16End": 3674624
+    },
+    {
+      "plugin": "sync",
+      "method": "setDirty",
+      "utf16Start": 3674625,
+      "utf16End": 3674701
+    },
+    {
+      "plugin": "sync",
+      "method": "forceSaveData",
+      "utf16Start": 3674702,
+      "utf16End": 3674778
+    },
+    {
+      "plugin": "sync",
+      "method": "getHashFromMetadataCache",
+      "utf16Start": 3674779,
+      "utf16End": 3674943
+    },
+    {
+      "plugin": "sync",
+      "method": "syncFileDown",
+      "utf16Start": 3674944,
+      "utf16End": 3677460
+    },
+    {
+      "plugin": "sync",
+      "method": "patchCorePluginsFile",
+      "utf16Start": 3677461,
+      "utf16End": 3677689
+    },
+    {
+      "plugin": "sync",
+      "method": "_updateStatusBar",
+      "utf16Start": 3677690,
+      "utf16End": 3678308
+    },
+    {
+      "plugin": "sync",
+      "method": "showVersionHistory",
+      "utf16Start": 3678309,
+      "utf16End": 3678468
+    },
+    {
+      "plugin": "sync",
+      "method": "getHistory",
+      "utf16Start": 3678469,
+      "utf16End": 3678700
+    },
+    {
+      "plugin": "sync",
+      "method": "getContentForVersion",
+      "utf16Start": 3678701,
+      "utf16End": 3678905
+    },
+    {
+      "plugin": "sync",
+      "method": "restoreVersion",
+      "utf16Start": 3678906,
+      "utf16End": 3679268
+    },
+    {
+      "plugin": "sync",
+      "method": "showDeletedFiles",
+      "utf16Start": 3679269,
+      "utf16End": 3679610
+    },
+    {
+      "plugin": "sync",
+      "method": "showConfigFiles",
+      "utf16Start": 3679611,
+      "utf16End": 3680092
+    },
+    {
+      "plugin": "sync",
+      "method": "getUsernames",
+      "utf16Start": 3680093,
+      "utf16End": 3680295
+    },
+    {
+      "plugin": "sync",
+      "method": "purge",
+      "utf16Start": 3680296,
+      "utf16End": 3680511
+    },
+    {
+      "plugin": "sync",
+      "method": "size",
+      "utf16Start": 3680512,
+      "utf16End": 3680773
+    },
+    {
+      "plugin": "sync",
+      "method": "openSettings",
+      "utf16Start": 3680774,
+      "utf16End": 3680896
+    },
+    {
+      "plugin": "sync",
+      "method": "showSyncLog",
+      "utf16Start": 3680897,
+      "utf16End": 3680995
+    },
+    {
+      "plugin": "sync",
+      "method": "getDebugInfo",
+      "utf16Start": 3680996,
+      "utf16End": 3681737
+    },
+    {
+      "plugin": "sync",
+      "method": "trigger",
+      "utf16Start": 3681738,
+      "utf16End": 3681874
+    },
+    {
+      "plugin": "sync",
+      "method": "on",
+      "utf16Start": 3681875,
+      "utf16End": 3681945
+    },
+    {
+      "plugin": "publish",
+      "method": "init",
+      "utf16Start": 3537162,
+      "utf16End": 3538107
+    },
+    {
+      "plugin": "publish",
+      "method": "onEnable",
+      "utf16Start": 3538108,
+      "utf16End": 3543058
+    },
+    {
+      "plugin": "publish",
+      "method": "onDisable",
+      "utf16Start": 3543059,
+      "utf16End": 3543111
+    },
+    {
+      "plugin": "publish",
+      "method": "loadData",
+      "utf16Start": 3543112,
+      "utf16End": 3543450
+    },
+    {
+      "plugin": "publish",
+      "method": "saveData",
+      "utf16Start": 3543451,
+      "utf16End": 3543721
+    },
+    {
+      "plugin": "publish",
+      "method": "setup",
+      "utf16Start": 3543722,
+      "utf16End": 3543931
+    },
+    {
+      "plugin": "publish",
+      "method": "setIncludes",
+      "utf16Start": 3543932,
+      "utf16End": 3544135
+    },
+    {
+      "plugin": "publish",
+      "method": "setExcludes",
+      "utf16Start": 3544136,
+      "utf16End": 3544339
+    },
+    {
+      "plugin": "publish",
+      "method": "isFileSupported",
+      "utf16Start": 3544340,
+      "utf16End": 3544444
+    },
+    {
+      "plugin": "publish",
+      "method": "scanForChanges",
+      "utf16Start": 3544445,
+      "utf16End": 3545558
+    },
+    {
+      "plugin": "publish",
+      "method": "apiCustomUrl",
+      "utf16Start": 3545559,
+      "utf16End": 3545729
+    },
+    {
+      "plugin": "publish",
+      "method": "apiList",
+      "utf16Start": 3545730,
+      "utf16End": 3545858
+    },
+    {
+      "plugin": "publish",
+      "method": "apiOptions",
+      "utf16Start": 3545859,
+      "utf16End": 3546007
+    },
+    {
+      "plugin": "publish",
+      "method": "apiGetPassword",
+      "utf16Start": 3546008,
+      "utf16End": 3546137
+    },
+    {
+      "plugin": "publish",
+      "method": "apiAddPassword",
+      "utf16Start": 3546138,
+      "utf16End": 3546299
+    },
+    {
+      "plugin": "publish",
+      "method": "apiDelPassword",
+      "utf16Start": 3546300,
+      "utf16End": 3546449
+    },
+    {
+      "plugin": "publish",
+      "method": "apiRemoveFile",
+      "utf16Start": 3546450,
+      "utf16End": 3546597
+    },
+    {
+      "plugin": "publish",
+      "method": "apiUploadFile",
+      "utf16Start": 3546598,
+      "utf16End": 3547015
+    },
+    {
+      "plugin": "publish",
+      "method": "apiDownloadFile",
+      "utf16Start": 3547016,
+      "utf16End": 3547430
+    },
+    {
+      "plugin": "publish",
+      "method": "getCurrentSlug",
+      "utf16Start": 3547431,
+      "utf16End": 3547729
+    },
+    {
+      "plugin": "publish",
+      "method": "getPublishFlag",
+      "utf16Start": 3547730,
+      "utf16End": 3548189
+    },
+    {
+      "plugin": "publish",
+      "method": "getHash",
+      "utf16Start": 3548190,
+      "utf16End": 3548375
+    },
+    {
+      "plugin": "publish",
+      "method": "getHashFromMetadataCache",
+      "utf16Start": 3548376,
+      "utf16End": 3548541
+    },
+    {
+      "plugin": "publish",
+      "method": "computeHash",
+      "utf16Start": 3548542,
+      "utf16End": 3548767
+    },
+    {
+      "plugin": "publish",
+      "method": "openModal",
+      "utf16Start": 3548768,
+      "utf16End": 3548889
+    },
+    {
+      "plugin": "publish",
+      "method": "openPublishChanges",
+      "utf16Start": 3548890,
+      "utf16End": 3548949
+    },
+    {
+      "plugin": "publish",
+      "method": "viewSites",
+      "utf16Start": 3548950,
+      "utf16End": 3549042
+    },
+    {
+      "plugin": "publish",
+      "method": "uploadFile",
+      "utf16Start": 3549043,
+      "utf16End": 3549237
+    }
+  ],
+  "sourceSegments": [
+    {
+      "file": "registration.js",
+      "member": "app.js",
+      "utf16Start": 3820113,
+      "utf16End": 3820831,
+      "byteStart": 3825058,
+      "byteEnd": 3825776,
+      "sourceSliceSha256": "1e972e4551ece20a57b76bc6209c252bfbbbd02c7eb6139cc275dbd49097e629",
+      "projectedSha256": "28f0cdca454c7e86a7a86242dce7a264be9c4eb217257882819225da0717a31f",
+      "prefix": "",
+      "suffix": ";\n"
+    },
+    {
+      "file": "constructor-file-explorer.js",
+      "member": "app.js",
+      "utf16Start": 3367820,
+      "utf16End": 3367922,
+      "byteStart": 3372673,
+      "byteEnd": 3372775,
+      "sourceSliceSha256": "20ad31966b8a683679e34b1d3b41736aad7ad6bf8c88e8b6ab9927a98c5a3e95",
+      "projectedSha256": "20ad31966b8a683679e34b1d3b41736aad7ad6bf8c88e8b6ab9927a98c5a3e95",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-global-search.js",
+      "member": "app.js",
+      "utf16Start": 2653494,
+      "utf16End": 2653643,
+      "byteStart": 2658224,
+      "byteEnd": 2658373,
+      "sourceSliceSha256": "995b0cb3f22fb03cc52c67a2d0b0a6d62eb9051b558508d48ae8c46be94479c5",
+      "projectedSha256": "995b0cb3f22fb03cc52c67a2d0b0a6d62eb9051b558508d48ae8c46be94479c5",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-switcher.js",
+      "member": "app.js",
+      "utf16Start": 3549352,
+      "utf16End": 3549535,
+      "byteStart": 3554229,
+      "byteEnd": 3554412,
+      "sourceSliceSha256": "fc819e8c7bb2de443c93f0c7cefdeab0930de58edb3e05fb548467b7fda04cbc",
+      "projectedSha256": "fc819e8c7bb2de443c93f0c7cefdeab0930de58edb3e05fb548467b7fda04cbc",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-graph.js",
+      "member": "app.js",
+      "utf16Start": 2672300,
+      "utf16End": 2672394,
+      "byteStart": 2677030,
+      "byteEnd": 2677124,
+      "sourceSliceSha256": "ec03d32363113ad63c894dd4065b11ff78085b1df424a805d0b69dae50fb5858",
+      "projectedSha256": "ec03d32363113ad63c894dd4065b11ff78085b1df424a805d0b69dae50fb5858",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-backlink.js",
+      "member": "app.js",
+      "utf16Start": 3002888,
+      "utf16End": 3003021,
+      "byteStart": 3007683,
+      "byteEnd": 3007816,
+      "sourceSliceSha256": "de492ba48d7bfd467598dcfbde73fa008f6a047f4dfd98ce69dade8dbeede609",
+      "projectedSha256": "de492ba48d7bfd467598dcfbde73fa008f6a047f4dfd98ce69dade8dbeede609",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-canvas.js",
+      "member": "app.js",
+      "utf16Start": 3332476,
+      "utf16End": 3333828,
+      "byteStart": 3337323,
+      "byteEnd": 3338675,
+      "sourceSliceSha256": "be94787655ef532810c1c0003e12cf76264db39fbe6930d4d42dcbecf50f041b",
+      "projectedSha256": "be94787655ef532810c1c0003e12cf76264db39fbe6930d4d42dcbecf50f041b",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-outgoing-link.js",
+      "member": "app.js",
+      "utf16Start": 3411760,
+      "utf16End": 3411864,
+      "byteStart": 3416637,
+      "byteEnd": 3416741,
+      "sourceSliceSha256": "a60c13554c160601a66cbb624df7754564df6e8291eb5bb8bb993d3313717848",
+      "projectedSha256": "a60c13554c160601a66cbb624df7754564df6e8291eb5bb8bb993d3313717848",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-tag-pane.js",
+      "member": "app.js",
+      "utf16Start": 3681991,
+      "utf16End": 3682090,
+      "byteStart": 3686890,
+      "byteEnd": 3686989,
+      "sourceSliceSha256": "a8d4c269a4e7e0b47d44f8ef9fc7148ae8c24ec3cfba365e99fcae30512e17e0",
+      "projectedSha256": "a8d4c269a4e7e0b47d44f8ef9fc7148ae8c24ec3cfba365e99fcae30512e17e0",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-footnotes.js",
+      "member": "app.js",
+      "utf16Start": 3391393,
+      "utf16End": 3391491,
+      "byteStart": 3396246,
+      "byteEnd": 3396344,
+      "sourceSliceSha256": "ccb20aeae66a342050adee89e3f310172d6d7358d490cf974f8f5b574d16c619",
+      "projectedSha256": "ccb20aeae66a342050adee89e3f310172d6d7358d490cf974f8f5b574d16c619",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-properties.js",
+      "member": "app.js",
+      "utf16Start": 3442768,
+      "utf16End": 3442869,
+      "byteStart": 3447645,
+      "byteEnd": 3447746,
+      "sourceSliceSha256": "f991ed5ed2d746b2e7bb2173c7cbf0fc82dafde6c74922679e7f5c41f1b107f2",
+      "projectedSha256": "f991ed5ed2d746b2e7bb2173c7cbf0fc82dafde6c74922679e7f5c41f1b107f2",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-page-preview.js",
+      "member": "app.js",
+      "utf16Start": 3439474,
+      "utf16End": 3439631,
+      "byteStart": 3444351,
+      "byteEnd": 3444508,
+      "sourceSliceSha256": "72dd671d559d5ff18309103cb75fd9102b4c49ad7690e8d8965bf1381d290c29",
+      "projectedSha256": "72dd671d559d5ff18309103cb75fd9102b4c49ad7690e8d8965bf1381d290c29",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-daily-notes.js",
+      "member": "app.js",
+      "utf16Start": 3352801,
+      "utf16End": 3352948,
+      "byteStart": 3357654,
+      "byteEnd": 3357801,
+      "sourceSliceSha256": "f42b03c07b257a2223cef67a3593731d9e0fea3e250cf3c7b0a562bf167293e8",
+      "projectedSha256": "f42b03c07b257a2223cef67a3593731d9e0fea3e250cf3c7b0a562bf167293e8",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-templates.js",
+      "member": "app.js",
+      "utf16Start": 3691364,
+      "utf16End": 3691567,
+      "byteStart": 3696263,
+      "byteEnd": 3696466,
+      "sourceSliceSha256": "044f50183023d365e0848b4e267bafd70636609f159833186c13f3d0f16f1e0e",
+      "projectedSha256": "044f50183023d365e0848b4e267bafd70636609f159833186c13f3d0f16f1e0e",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-note-composer.js",
+      "member": "app.js",
+      "utf16Start": 3399606,
+      "utf16End": 3399765,
+      "byteStart": 3404459,
+      "byteEnd": 3404618,
+      "sourceSliceSha256": "974660c9e635a28b16555ff217a2e6178c7f7b78be0d7178b19b9cef717c306c",
+      "projectedSha256": "974660c9e635a28b16555ff217a2e6178c7f7b78be0d7178b19b9cef717c306c",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-command-palette.js",
+      "member": "app.js",
+      "utf16Start": 3347489,
+      "utf16End": 3347711,
+      "byteStart": 3352336,
+      "byteEnd": 3352558,
+      "sourceSliceSha256": "f83b60e9fcd6804eef4b0643d331eb9473c38ab3f709c9f8670d46400f95a924",
+      "projectedSha256": "f83b60e9fcd6804eef4b0643d331eb9473c38ab3f709c9f8670d46400f95a924",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-slash-command.js",
+      "member": "app.js",
+      "utf16Start": 3553617,
+      "utf16End": 3553761,
+      "byteStart": 3558516,
+      "byteEnd": 3558660,
+      "sourceSliceSha256": "77cbf45c96f41ce881455248d3817056a542a98a99cf17fafc9411e220818374",
+      "projectedSha256": "77cbf45c96f41ce881455248d3817056a542a98a99cf17fafc9411e220818374",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-editor-status.js",
+      "member": "app.js",
+      "utf16Start": 3365439,
+      "utf16End": 3365606,
+      "byteStart": 3370292,
+      "byteEnd": 3370459,
+      "sourceSliceSha256": "cc67ac655ec95ec41b99ae66a3510eda295d0d5e7bba1349f85d36125bb3b1ab",
+      "projectedSha256": "cc67ac655ec95ec41b99ae66a3510eda295d0d5e7bba1349f85d36125bb3b1ab",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-bookmarks.js",
+      "member": "app.js",
+      "utf16Start": 3175728,
+      "utf16End": 3176021,
+      "byteStart": 3180535,
+      "byteEnd": 3180828,
+      "sourceSliceSha256": "ba0ac4289f544a01a05e9de8fe8f21233426b87a33fd855a9bd2e5b30b3c8010",
+      "projectedSha256": "ba0ac4289f544a01a05e9de8fe8f21233426b87a33fd855a9bd2e5b30b3c8010",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-markdown-importer.js",
+      "member": "app.js",
+      "utf16Start": 3391994,
+      "utf16End": 3392082,
+      "byteStart": 3396847,
+      "byteEnd": 3396935,
+      "sourceSliceSha256": "43307ecdf55610db76897e0b767b3599c5f34b2948d4ccae5ce1628b4dc32714",
+      "projectedSha256": "43307ecdf55610db76897e0b767b3599c5f34b2948d4ccae5ce1628b4dc32714",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-zk-prefixer.js",
+      "member": "app.js",
+      "utf16Start": 3700139,
+      "utf16End": 3700270,
+      "byteStart": 3705044,
+      "byteEnd": 3705175,
+      "sourceSliceSha256": "dc4ecc2582dea8c508a6ec4013710be35c2aadd0e5c08b7806039652f7a9c36c",
+      "projectedSha256": "dc4ecc2582dea8c508a6ec4013710be35c2aadd0e5c08b7806039652f7a9c36c",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-random-note.js",
+      "member": "app.js",
+      "utf16Start": 3552792,
+      "utf16End": 3552951,
+      "byteStart": 3557691,
+      "byteEnd": 3557850,
+      "sourceSliceSha256": "2aad4cbfce888233c9e9929e752540b58ce56c611e3a6565ae8dc7643d5ef3d2",
+      "projectedSha256": "2aad4cbfce888233c9e9929e752540b58ce56c611e3a6565ae8dc7643d5ef3d2",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-outline.js",
+      "member": "app.js",
+      "utf16Start": 3428254,
+      "utf16End": 3428382,
+      "byteStart": 3433131,
+      "byteEnd": 3433259,
+      "sourceSliceSha256": "efc1a78b5ad9fbd9aa15fb60e9fadc4cebacc7b9f8aa283ae6d1e811cc4c293b",
+      "projectedSha256": "efc1a78b5ad9fbd9aa15fb60e9fadc4cebacc7b9f8aa283ae6d1e811cc4c293b",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-word-count.js",
+      "member": "app.js",
+      "utf16Start": 3707511,
+      "utf16End": 3707800,
+      "byteStart": 3712450,
+      "byteEnd": 3712739,
+      "sourceSliceSha256": "a24806c6b413813368f55bb205fbf9e0fe83421bce8ad01534c3aa619d02d9f7",
+      "projectedSha256": "a24806c6b413813368f55bb205fbf9e0fe83421bce8ad01534c3aa619d02d9f7",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-slides.js",
+      "member": "app.js",
+      "utf16Start": 3555734,
+      "utf16End": 3555841,
+      "byteStart": 3560633,
+      "byteEnd": 3560740,
+      "sourceSliceSha256": "68783eb8640f530fecb45015b48b422ffb3a466a2a143b40747f91fa178a3440",
+      "projectedSha256": "68783eb8640f530fecb45015b48b422ffb3a466a2a143b40747f91fa178a3440",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-audio-recorder.js",
+      "member": "app.js",
+      "utf16Start": 3074054,
+      "utf16End": 3074269,
+      "byteStart": 3078855,
+      "byteEnd": 3079070,
+      "sourceSliceSha256": "770e63966a81e01149c2e042b8bd7894f3725894a42fd6c8f3ab10e0d05b8713",
+      "projectedSha256": "770e63966a81e01149c2e042b8bd7894f3725894a42fd6c8f3ab10e0d05b8713",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-workspaces.js",
+      "member": "app.js",
+      "utf16Start": 3711020,
+      "utf16End": 3711146,
+      "byteStart": 3715959,
+      "byteEnd": 3716085,
+      "sourceSliceSha256": "c9f76b4d4210309720015f3acbda13c4d5ee9de582884dec1f64f5ca01d1b22b",
+      "projectedSha256": "c9f76b4d4210309720015f3acbda13c4d5ee9de582884dec1f64f5ca01d1b22b",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-file-recovery.js",
+      "member": "app.js",
+      "utf16Start": 3370178,
+      "utf16End": 3370374,
+      "byteStart": 3375031,
+      "byteEnd": 3375227,
+      "sourceSliceSha256": "20f73416fd47518216b104e948ca9a99f128296a851c8289ab7d22fe722df7f1",
+      "projectedSha256": "20f73416fd47518216b104e948ca9a99f128296a851c8289ab7d22fe722df7f1",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-publish.js",
+      "member": "app.js",
+      "utf16Start": 3536874,
+      "utf16End": 3537155,
+      "byteStart": 3541751,
+      "byteEnd": 3542032,
+      "sourceSliceSha256": "4d54663084c30871badd0f83d7875a104ce75eb0758eac6d00a04e30227d0c3a",
+      "projectedSha256": "4d54663084c30871badd0f83d7875a104ce75eb0758eac6d00a04e30227d0c3a",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-sync.js",
+      "member": "app.js",
+      "utf16Start": 3638748,
+      "utf16End": 3639741,
+      "byteStart": 3643647,
+      "byteEnd": 3644640,
+      "sourceSliceSha256": "b5096a61c50d76cc560b53d0339c91689f14d4989a05d74a12e322fb4b2d63ed",
+      "projectedSha256": "b5096a61c50d76cc560b53d0339c91689f14d4989a05d74a12e322fb4b2d63ed",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-bases.js",
+      "member": "app.js",
+      "utf16Start": 3145495,
+      "utf16End": 3145611,
+      "byteStart": 3150296,
+      "byteEnd": 3150412,
+      "sourceSliceSha256": "50096ec636f932281deb6fa6b8951d5327d4d75e7638771f69393784796fbcb7",
+      "projectedSha256": "50096ec636f932281deb6fa6b8951d5327d4d75e7638771f69393784796fbcb7",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "constructor-webviewer.js",
+      "member": "app.js",
+      "utf16Start": 2926527,
+      "utf16End": 2926625,
+      "byteStart": 2931310,
+      "byteEnd": 2931408,
+      "sourceSliceSha256": "25eb78fdeb7942f9d2e98834bc1d8bc28208bf1221a3326adb6864a3be37ea95",
+      "projectedSha256": "25eb78fdeb7942f9d2e98834bc1d8bc28208bf1221a3326adb6864a3be37ea95",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-ak-1167761.js",
+      "member": "app.js",
+      "utf16Start": 1167761,
+      "utf16End": 1168302,
+      "byteStart": 1172368,
+      "byteEnd": 1172909,
+      "sourceSliceSha256": "758cfcc96590ff5d44a506339b1f626c5edb6f45ddd35f1d6d1c131acf9d4ffa",
+      "projectedSha256": "758cfcc96590ff5d44a506339b1f626c5edb6f45ddd35f1d6d1c131acf9d4ffa",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-sk-1168302.js",
+      "member": "app.js",
+      "utf16Start": 1168302,
+      "utf16End": 1168392,
+      "byteStart": 1172909,
+      "byteEnd": 1172999,
+      "sourceSliceSha256": "52a630cf36270891f946e010c257d0fba8756aa114e3b3985670c2c377cfbf52",
+      "projectedSha256": "52a630cf36270891f946e010c257d0fba8756aa114e3b3985670c2c377cfbf52",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-lk-1168392.js",
+      "member": "app.js",
+      "utf16Start": 1168392,
+      "utf16End": 1168465,
+      "byteStart": 1172999,
+      "byteEnd": 1173072,
+      "sourceSliceSha256": "d18d703ca64aa19141f87f02d7f3adc252cb26b24eb7bfa7cd81e9ec7f3c4426",
+      "projectedSha256": "d18d703ca64aa19141f87f02d7f3adc252cb26b24eb7bfa7cd81e9ec7f3c4426",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-ck-1168465.js",
+      "member": "app.js",
+      "utf16Start": 1168465,
+      "utf16End": 1168537,
+      "byteStart": 1173072,
+      "byteEnd": 1173144,
+      "sourceSliceSha256": "8040db91508c484a9276f55b16f3abfc0c16e122d26592ffda2134004fac3c24",
+      "projectedSha256": "8040db91508c484a9276f55b16f3abfc0c16e122d26592ffda2134004fac3c24",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-uk-1168537.js",
+      "member": "app.js",
+      "utf16Start": 1168537,
+      "utf16End": 1168591,
+      "byteStart": 1173144,
+      "byteEnd": 1173198,
+      "sourceSliceSha256": "f93453fd913b6cdcb911f800e27d44fa5189f08ff5235c5552a10a5a4e809e1a",
+      "projectedSha256": "f93453fd913b6cdcb911f800e27d44fa5189f08ff5235c5552a10a5a4e809e1a",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-hk-1168591.js",
+      "member": "app.js",
+      "utf16Start": 1168591,
+      "utf16End": 1168662,
+      "byteStart": 1173198,
+      "byteEnd": 1173269,
+      "sourceSliceSha256": "1d433a42e18408131e9fcd680972f2dba3410e2bc65fbd98a38c0d2ae36478bc",
+      "projectedSha256": "1d433a42e18408131e9fcd680972f2dba3410e2bc65fbd98a38c0d2ae36478bc",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-pk-1168662.js",
+      "member": "app.js",
+      "utf16Start": 1168662,
+      "utf16End": 1168734,
+      "byteStart": 1173269,
+      "byteEnd": 1173341,
+      "sourceSliceSha256": "6359d7a33a925842b409ff1c4449626524d7c02150ecaf1405828de59f9068f4",
+      "projectedSha256": "6359d7a33a925842b409ff1c4449626524d7c02150ecaf1405828de59f9068f4",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-dk-1168734.js",
+      "member": "app.js",
+      "utf16Start": 1168734,
+      "utf16End": 1168793,
+      "byteStart": 1173341,
+      "byteEnd": 1173400,
+      "sourceSliceSha256": "f27c14d2115fcef0477facbceffc1ac87385712ea258323fd43fc8de65b38a9d",
+      "projectedSha256": "f27c14d2115fcef0477facbceffc1ac87385712ea258323fd43fc8de65b38a9d",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-fk-1168793.js",
+      "member": "app.js",
+      "utf16Start": 1168793,
+      "utf16End": 1168855,
+      "byteStart": 1173400,
+      "byteEnd": 1173462,
+      "sourceSliceSha256": "4c1e24033f1d2d45877027c6fce216b515c341269cbba2f923cb2ac82c86b155",
+      "projectedSha256": "4c1e24033f1d2d45877027c6fce216b515c341269cbba2f923cb2ac82c86b155",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-vk-1168855.js",
+      "member": "app.js",
+      "utf16Start": 1168855,
+      "utf16End": 1168938,
+      "byteStart": 1173462,
+      "byteEnd": 1173545,
+      "sourceSliceSha256": "ca9cb99da8ea99364bf4bcee950b848b476ad2d8cab8047b4f20bfdc38b3567a",
+      "projectedSha256": "ca9cb99da8ea99364bf4bcee950b848b476ad2d8cab8047b4f20bfdc38b3567a",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-mk-1168938.js",
+      "member": "app.js",
+      "utf16Start": 1168938,
+      "utf16End": 1169054,
+      "byteStart": 1173545,
+      "byteEnd": 1173661,
+      "sourceSliceSha256": "fd7a6e8c9c97ae88a1275ffeafacf815b312f2632ed663b098db15465e2a4aa8",
+      "projectedSha256": "fd7a6e8c9c97ae88a1275ffeafacf815b312f2632ed663b098db15465e2a4aa8",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-gk-1169054.js",
+      "member": "app.js",
+      "utf16Start": 1169054,
+      "utf16End": 1169176,
+      "byteStart": 1173661,
+      "byteEnd": 1173783,
+      "sourceSliceSha256": "14b9256947add490b64167d64f5d56d2d38b320097c051e77021c92216a49e43",
+      "projectedSha256": "14b9256947add490b64167d64f5d56d2d38b320097c051e77021c92216a49e43",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-yk-1169176.js",
+      "member": "app.js",
+      "utf16Start": 1169176,
+      "utf16End": 1169251,
+      "byteStart": 1173783,
+      "byteEnd": 1173858,
+      "sourceSliceSha256": "bdbbd0b6de778fb247d1fc8459389c6ed7e797a678fd1d0afb01b8f114d0a9ed",
+      "projectedSha256": "bdbbd0b6de778fb247d1fc8459389c6ed7e797a678fd1d0afb01b8f114d0a9ed",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-bk-1169251.js",
+      "member": "app.js",
+      "utf16Start": 1169251,
+      "utf16End": 1169337,
+      "byteStart": 1173858,
+      "byteEnd": 1173944,
+      "sourceSliceSha256": "15d7ac07130f47535a45b11ad2245a407cf90cf92b3855821d49ec9140c17f79",
+      "projectedSha256": "15d7ac07130f47535a45b11ad2245a407cf90cf92b3855821d49ec9140c17f79",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-wk-1169337.js",
+      "member": "app.js",
+      "utf16Start": 1169337,
+      "utf16End": 1169447,
+      "byteStart": 1173944,
+      "byteEnd": 1174054,
+      "sourceSliceSha256": "b6c2dab8e438ac4630bc7dfe02e0501cadb835c0137b6a7441a1748dce1ccb90",
+      "projectedSha256": "b6c2dab8e438ac4630bc7dfe02e0501cadb835c0137b6a7441a1748dce1ccb90",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-kk-1169447.js",
+      "member": "app.js",
+      "utf16Start": 1169447,
+      "utf16End": 1169501,
+      "byteStart": 1174054,
+      "byteEnd": 1174108,
+      "sourceSliceSha256": "63560bbd182a572f351589ef4b21bde202e6210da1bc82d9619f7b1fa035f531",
+      "projectedSha256": "63560bbd182a572f351589ef4b21bde202e6210da1bc82d9619f7b1fa035f531",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-Ck-1169501.js",
+      "member": "app.js",
+      "utf16Start": 1169501,
+      "utf16End": 1169568,
+      "byteStart": 1174108,
+      "byteEnd": 1174175,
+      "sourceSliceSha256": "d4dc639a83826e7161350fc3bff63417333b0eb51835ae3462cf2c100be159d8",
+      "projectedSha256": "d4dc639a83826e7161350fc3bff63417333b0eb51835ae3462cf2c100be159d8",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-Ek-1169568.js",
+      "member": "app.js",
+      "utf16Start": 1169568,
+      "utf16End": 1169651,
+      "byteStart": 1174175,
+      "byteEnd": 1174258,
+      "sourceSliceSha256": "abd412b121a2446d596c10581c5ead8249647854ced1beab4a2eabe8c6b74fc2",
+      "projectedSha256": "abd412b121a2446d596c10581c5ead8249647854ced1beab4a2eabe8c6b74fc2",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-Mk-1169651.js",
+      "member": "app.js",
+      "utf16Start": 1169651,
+      "utf16End": 1169738,
+      "byteStart": 1174258,
+      "byteEnd": 1174345,
+      "sourceSliceSha256": "b8a1a60a69512d9263c9b5660428751e92861db6cc39200b96b71b7dfbc24126",
+      "projectedSha256": "b8a1a60a69512d9263c9b5660428751e92861db6cc39200b96b71b7dfbc24126",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-Sk-1169738.js",
+      "member": "app.js",
+      "utf16Start": 1169738,
+      "utf16End": 1169795,
+      "byteStart": 1174345,
+      "byteEnd": 1174402,
+      "sourceSliceSha256": "319471cd6c26a96580a95ce8c6fd0958517cfa25fa53600fb9891ddbd9fb5bde",
+      "projectedSha256": "319471cd6c26a96580a95ce8c6fd0958517cfa25fa53600fb9891ddbd9fb5bde",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-origin-1167470.js",
+      "member": "app.js",
+      "utf16Start": 1167470,
+      "utf16End": 1167590,
+      "byteStart": 1172077,
+      "byteEnd": 1172197,
+      "sourceSliceSha256": "7456001e7fee2a89302abb7e7d36824c800a703501ce01ab6ab99b6681a87ed9",
+      "projectedSha256": "7456001e7fee2a89302abb7e7d36824c800a703501ce01ab6ab99b6681a87ed9",
+      "prefix": "",
+      "suffix": ""
+    },
+    {
+      "file": "cloud-method-vne-getHost.js",
+      "member": "app.js",
+      "utf16Start": 3658788,
+      "utf16End": 3658934,
+      "byteStart": 3663687,
+      "byteEnd": 3663833,
+      "sourceSliceSha256": "204db8bb2083e92e7f4b35eb5017886c266a328ca2b64f1ce04009fc67fe2218",
+      "projectedSha256": "e880185a47aaf771395e7a7243b81b7d8db6d6e9c4adbd7db89a6b9ec60d7698",
+      "prefix": "",
+      "suffix": ";\n"
+    },
+    {
+      "file": "cloud-method-vne-getStatus.js",
+      "member": "app.js",
+      "utf16Start": 3659018,
+      "utf16End": 3659228,
+      "byteStart": 3663917,
+      "byteEnd": 3664127,
+      "sourceSliceSha256": "c90c91131e318ce06fae11eed6096dbd63f304069ce47913c92ca04e869e6ddd",
+      "projectedSha256": "bc42232a1d7d59b61fe8a7b77b8e8b9a8367a8aa7120b1ea7264a40a6b379557",
+      "prefix": "",
+      "suffix": ";\n"
+    },
+    {
+      "file": "cloud-method-vne-requestSync.js",
+      "member": "app.js",
+      "utf16Start": 3659472,
+      "utf16End": 3660450,
+      "byteStart": 3664371,
+      "byteEnd": 3665349,
+      "sourceSliceSha256": "c600103c692adb6c1280fb9b07a4f00e078e5b4514403af23d12e60ea2bf53f4",
+      "projectedSha256": "039c2a51f0156f2c3d58c75deafd6f70d54faba1ea27ae146d71e8418061e457",
+      "prefix": "",
+      "suffix": ";\n"
+    },
+    {
+      "file": "cloud-method-gte-uploadFile.js",
+      "member": "app.js",
+      "utf16Start": 3549043,
+      "utf16End": 3549237,
+      "byteStart": 3553920,
+      "byteEnd": 3554114,
+      "sourceSliceSha256": "e019dff8a15d110873e84ef6930db01b50d0258e74c908fd3e1cc479d97c7bbe",
+      "projectedSha256": "24fbd9f2a782449d627d56fb34644e3d9a0e51ebc42db31686e47a1752bc6251",
+      "prefix": "",
+      "suffix": ";\n"
+    }
+  ],
+  "boundaries": [
+    "This derived tree is not the complete application.",
+    "Wrapper syntax only makes exact slices parseable; external bindings stay unresolved.",
+    "Registration is not runtime enablement.",
+    "Static endpoints do not prove server behavior, successful calls or protocol compatibility."
+  ],
+  "implementationParity": "not-assessed",
+  "runtimePluginEnablement": "not-observed",
+  "cloudServerRequests": "none",
+  "privacy": "No user vault, account, credentials, or application runtime data collected. Local absolute paths and raw proprietary snippets omitted."
+}

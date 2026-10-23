@@ -1,0 +1,41 @@
+{
+  "scope": "independent client development UI observation; not whole-product parity",
+  "evidence_id": "ev_ffa65b589ac7ac30f420f6cce7f92e3092184c737c9c9648779214d5c2dc2e98",
+  "provider": {
+    "id": "rea-playwright-browser-scenario",
+    "name": "REA Playwright browser scenario capture provider",
+    "version": "1"
+  },
+  "operation": "capture_browser_scenario",
+  "steps": [
+    {
+      "id": "scenario_start",
+      "status": "completed",
+      "error": null
+    },
+    {
+      "id": "wait-for-independent-workspace",
+      "status": "completed",
+      "error": null
+    },
+    {
+      "id": "open-graph-command",
+      "status": "completed",
+      "error": null
+    },
+    {
+      "id": "wait-for-rendered-graph",
+      "status": "completed",
+      "error": null
+    }
+  ],
+  "dom_sha256": "df06939416f33719750cfdea8967d8064ff74b6509513dfa7ac9844d4d37d338",
+  "completeness": {
+    "status": "complete",
+    "equality_eligible": true,
+    "missing_sections": [],
+    "truncated_sections": []
+  },
+  "cleanup": "terminated-owned-process",
+  "scenario": "research/client-graph-scenario.json"
+}

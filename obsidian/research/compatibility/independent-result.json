@@ -1,0 +1,130 @@
+{
+  "schema": "vaultdesk-independent-compatibility-result-v1",
+  "generatedAt": "2026-10-23T05:43:01.015Z",
+  "implementation": "VaultDesk independent core via research/compatibility/adapter.mjs",
+  "reference": {
+    "artifactPackageVersion": "1.13.7",
+    "electron": "39.8.3",
+    "platform": "win32",
+    "coreSha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+    "corpusSha256": "643987ae8c5226ccc67af51adc20dea5add8525dc723b9a533dd320a793bf1b5",
+    "observedRuns": [
+      "run07",
+      "run08",
+      "run09"
+    ]
+  },
+  "coverage": {
+    "cases": 20,
+    "resolutionQueries": 34,
+    "mutationCases": 10,
+    "boundary": "Frozen link resolution and rename corpus only; this does not establish full Obsidian or UI compatibility."
+  },
+  "sourceHashes": {
+    "cases.json": "643987ae8c5226ccc67af51adc20dea5add8525dc723b9a533dd320a793bf1b5",
+    "oracle.json": "b72d8b1427a845ec6749b7f87cc71421b200c691d82cf92f3dd994c4fe24623b",
+    "conformance.mjs": "52a1a1554bbc4146a445f9e903531ac7b162b07b7e97de6ad8279c610d1c0eec",
+    "run-adapter.mjs": "c72eab4be234b58978b38417f87ba32a39e90c76abdb12673b3ccb0b9b1b3669",
+    "negative-controls.mjs": "7e4271f2f1b4da0ae1c6111a1f31c987d44c4d36271eaeae0efca556c17c0b00",
+    "adapter.d.ts": "07adaf168080fbcd6eb7c6947c4d245b55ba88281a4f12157192a572b7bfa907",
+    "README.md": "11e1af3a338a4daa0e34a1788408453c4189c4ea996891dc791de02f21c8f1c2",
+    "adapter.mjs": "b91610406fa44fffde5cb60976a654267005b3026c6957b90acf869d712e096c",
+    "../../core/vault.mjs": "17574e883ac53ec88e3e46a9cd6a0afc021fa4e25712bd08757bcf79a7aa1afb"
+  },
+  "passed": true,
+  "strict": {
+    "profile": "strict-reference",
+    "passed": true,
+    "assertions": 218,
+    "failures": [],
+    "diagnostics": [
+      {
+        "id": "L06-tie-forward",
+        "query": "NoteL06",
+        "sourcePath": "L06/Tie/Source.md",
+        "acceptedPaths": [
+          "L06/Tie/bb/NoteL06.md",
+          "L06/Tie/aa/NoteL06.md"
+        ],
+        "reason": "Repeated reference runs selected different tied candidates; deterministic order is not asserted."
+      },
+      {
+        "id": "L07-tie-reverse",
+        "query": "NoteL07",
+        "sourcePath": "L07/Tie/Source.md",
+        "acceptedPaths": [
+          "L07/Tie/bb/NoteL07.md",
+          "L07/Tie/aa/NoteL07.md"
+        ],
+        "reason": "Repeated reference runs selected different tied candidates; deterministic order is not asserted."
+      }
+    ]
+  },
+  "portable": {
+    "profile": "portable-core",
+    "passed": true,
+    "assertions": 197,
+    "failures": [],
+    "diagnostics": [
+      {
+        "id": "L01-prefix",
+        "reason": "observed quirk excluded by profile"
+      },
+      {
+        "id": "L04-suffix",
+        "reason": "observed quirk excluded by profile"
+      },
+      {
+        "id": "L06-tie-forward",
+        "query": "NoteL06",
+        "sourcePath": "L06/Tie/Source.md",
+        "acceptedPaths": [
+          "L06/Tie/bb/NoteL06.md",
+          "L06/Tie/aa/NoteL06.md"
+        ],
+        "reason": "Repeated reference runs selected different tied candidates; deterministic order is not asserted."
+      },
+      {
+        "id": "L07-tie-reverse",
+        "query": "NoteL07",
+        "sourcePath": "L07/Tie/Source.md",
+        "acceptedPaths": [
+          "L07/Tie/bb/NoteL07.md",
+          "L07/Tie/aa/NoteL07.md"
+        ],
+        "reason": "Repeated reference runs selected different tied candidates; deterministic order is not asserted."
+      }
+    ]
+  },
+  "negativeControls": [
+    {
+      "name": "wrong-root-precedence",
+      "rejected": true,
+      "failureLabels": [
+        "L02-root: NoteL02 @ L02/A/Source.md"
+      ]
+    },
+    {
+      "name": "lost-collision-target",
+      "rejected": true,
+      "failureLabels": [
+        "R07-collision.text:R07/A/Source.md"
+      ]
+    },
+    {
+      "name": "once-changes-preference",
+      "rejected": true,
+      "failureLabels": [
+        "R05.settings"
+      ]
+    },
+    {
+      "name": "missing-case",
+      "rejected": true,
+      "failureLabels": [
+        "suite.caseCount",
+        "R10-folder"
+      ]
+    }
+  ]
+}

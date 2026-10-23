@@ -1,0 +1,24 @@
+services:
+  cloud:
+    build:
+      context: ./cloud
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8766:8766"
+    environment:
+      VAULTDESK_DB: /data/vaultdesk.sqlite3
+      VAULTDESK_ALLOW_REGISTRATION: ${VAULTDESK_ALLOW_REGISTRATION:-true}
+      VAULTDESK_MAX_FILE_BYTES: ${VAULTDESK_MAX_FILE_BYTES:-16777216}
+      VAULTDESK_USER_QUOTA_BYTES: ${VAULTDESK_USER_QUOTA_BYTES:-1073741824}
+      VAULTDESK_HISTORY_QUOTA_BYTES: ${VAULTDESK_HISTORY_QUOTA_BYTES:-5368709120}
+      VAULTDESK_SESSION_TTL_SECONDS: ${VAULTDESK_SESSION_TTL_SECONDS:-2592000}
+      VAULTDESK_CORS_ORIGINS: ${VAULTDESK_CORS_ORIGINS:-http://localhost:5178,http://127.0.0.1:5178}
+    volumes:
+      - vaultdesk-cloud:/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  vaultdesk-cloud:

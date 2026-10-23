@@ -1,0 +1,12 @@
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';
+import {checkCompatibility} from './conformance.mjs';
+const [adapterPath,profile='strict-reference',outputPath]=process.argv.slice(2);
+if(!adapterPath)throw Error('Usage: node run-adapter.mjs ADAPTER.mjs [PROFILE] [OBSERVATIONS_OUTPUT.json]');
+const adapter=await import(pathToFileURL(path.resolve(adapterPath)).href);
+if(typeof adapter.runSuite!=='function')throw Error('Adapter must export async runSuite(corpus)');
+const corpus=JSON.parse(fs.readFileSync(path.join(import.meta.dirname,'cases.json'),'utf8'));
+const oracle=JSON.parse(fs.readFileSync(path.join(import.meta.dirname,'oracle.json'),'utf8'));
+const actual=await adapter.runSuite(corpus);
+if(outputPath)fs.writeFileSync(outputPath,JSON.stringify(actual,null,2),{flag:'wx'});
+const result=checkCompatibility(actual,oracle,{profile});console.log(JSON.stringify(result,null,2));
+if(!result.passed)process.exitCode=1;

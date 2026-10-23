@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+output/
+research/raw/
+cloud/.data/
+*.log
+__pycache__/
+.playwright-cli/
+.playwright/

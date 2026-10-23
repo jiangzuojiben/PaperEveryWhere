@@ -1,0 +1,10 @@
+{
+  "browser": { "mode": "launch", "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" },
+  "start_url": { "url": "http://127.0.0.1:5178/" },
+  "actions": [
+    { "step_id": "wait-for-independent-workspace", "action": "wait_for", "locator": { "kind": "css", "selector": "[aria-label='文件浏览器']" }, "state": "visible", "timeout_ms": 30000 },
+    { "step_id": "open-graph-command", "action": "click", "locator": { "kind": "css", "selector": "[aria-label='打开图谱']" }, "timeout_ms": 10000 },
+    { "step_id": "wait-for-rendered-graph", "action": "wait_for", "locator": { "kind": "css", "selector": "svg[aria-label='全局关系图']" }, "state": "visible", "timeout_ms": 10000 }
+  ],
+  "capture": { "at_end": ["dom", "accessibility", "url"] }
+}

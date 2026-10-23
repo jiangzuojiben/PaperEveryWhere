@@ -1,0 +1,441 @@
+{
+  "schema": "obsidian-compat-input-v1",
+  "resolution": [
+    {
+      "id": "L01-prefix",
+      "files": {
+        "L01/A/zz/NoteL01.md": "<!-- identity:L01/A/zz/NoteL01.md -->\n# Heading\ncontent ^block-id\n",
+        "L01/AB/NoteL01.md": "<!-- identity:L01/AB/NoteL01.md -->\n# Heading\ncontent ^block-id\n",
+        "L01/B/NoteL01.md": "<!-- identity:L01/B/NoteL01.md -->\n# Heading\ncontent ^block-id\n",
+        "L01/Source.md": "# Source\n",
+        "L01/A/Source.md": "# Source\n",
+        "L01/AB/Source.md": "# Source\n",
+        "L01/A/deep/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL01",
+          "sourcePath": "L01/Source.md"
+        },
+        {
+          "linkpath": "NoteL01",
+          "sourcePath": "L01/A/Source.md"
+        },
+        {
+          "linkpath": "NoteL01",
+          "sourcePath": "L01/AB/Source.md"
+        },
+        {
+          "linkpath": "NoteL01",
+          "sourcePath": "L01/A/deep/Source.md"
+        },
+        {
+          "linkpath": "NoteL01",
+          "sourcePath": ""
+        }
+      ]
+    },
+    {
+      "id": "L02-root",
+      "files": {
+        "NoteL02.md": "<!-- identity:NoteL02.md -->\n# Heading\ncontent ^block-id\n",
+        "L02/A/NoteL02.md": "<!-- identity:L02/A/NoteL02.md -->\n# Heading\ncontent ^block-id\n",
+        "L02/B/NoteL02.md": "<!-- identity:L02/B/NoteL02.md -->\n# Heading\ncontent ^block-id\n",
+        "L02/A/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL02",
+          "sourcePath": "L02/A/Source.md"
+        },
+        {
+          "linkpath": "./NoteL02",
+          "sourcePath": "L02/A/Source.md"
+        },
+        {
+          "linkpath": "/L02/A/NoteL02",
+          "sourcePath": "L02/A/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L03-explicit",
+      "files": {
+        "L03/A/NoteL03.md": "<!-- identity:L03/A/NoteL03.md -->\n# Heading\ncontent ^block-id\n",
+        "L03/B/NoteL03.md": "<!-- identity:L03/B/NoteL03.md -->\n# Heading\ncontent ^block-id\n",
+        "L03/A/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "./NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "../B/NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "/L03/A/NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "/Missing/NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "./Missing/NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "Missing/NoteL03",
+          "sourcePath": "L03/A/Source.md"
+        },
+        {
+          "linkpath": "",
+          "sourcePath": "L03/A/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L04-suffix",
+      "files": {
+        "L04/AB/NoteL04.md": "<!-- identity:L04/AB/NoteL04.md -->\n# Heading\ncontent ^block-id\n",
+        "L04/X/AB/NoteL04.md": "<!-- identity:L04/X/AB/NoteL04.md -->\n# Heading\ncontent ^block-id\n",
+        "L04/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "B/NoteL04",
+          "sourcePath": "L04/Source.md"
+        },
+        {
+          "linkpath": "AB/NoteL04",
+          "sourcePath": "L04/Source.md"
+        },
+        {
+          "linkpath": "/B/NoteL04",
+          "sourcePath": "L04/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L05-depth",
+      "files": {
+        "L05/Tie/zzzzzzzz/NoteL05.md": "<!-- identity:L05/Tie/zzzzzzzz/NoteL05.md -->\n# Heading\ncontent ^block-id\n",
+        "L05/Tie/a/b/NoteL05.md": "<!-- identity:L05/Tie/a/b/NoteL05.md -->\n# Heading\ncontent ^block-id\n",
+        "L05/Tie/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL05",
+          "sourcePath": "L05/Tie/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L06-tie-forward",
+      "files": {
+        "L06/Tie/aa/NoteL06.md": "<!-- identity:L06/Tie/aa/NoteL06.md -->\n# Heading\ncontent ^block-id\n",
+        "L06/Tie/bb/NoteL06.md": "<!-- identity:L06/Tie/bb/NoteL06.md -->\n# Heading\ncontent ^block-id\n",
+        "L06/Tie/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL06",
+          "sourcePath": "L06/Tie/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L07-tie-reverse",
+      "files": {
+        "L07/Tie/bb/NoteL07.md": "<!-- identity:L07/Tie/bb/NoteL07.md -->\n# Heading\ncontent ^block-id\n",
+        "L07/Tie/aa/NoteL07.md": "<!-- identity:L07/Tie/aa/NoteL07.md -->\n# Heading\ncontent ^block-id\n",
+        "L07/Tie/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL07",
+          "sourcePath": "L07/Tie/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L08-extension",
+      "files": {
+        "L08/Ext/NoteL08.md": "<!-- identity:L08/Ext/NoteL08.md -->\n# Heading\ncontent ^block-id\n",
+        "L08/Ext/NoteL08.txt": "<!-- identity:L08/Ext/NoteL08.txt -->\n# Heading\ncontent ^block-id\n",
+        "L08/Ext/NoteL08.txt.md": "<!-- identity:L08/Ext/NoteL08.txt.md -->\n# Heading\ncontent ^block-id\n",
+        "L08/Ext/NoteL08": "<!-- identity:L08/Ext/NoteL08 -->\n# Heading\ncontent ^block-id\n",
+        "L08/Ext/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "NoteL08",
+          "sourcePath": "L08/Ext/Source.md"
+        },
+        {
+          "linkpath": "NoteL08.md",
+          "sourcePath": "L08/Ext/Source.md"
+        },
+        {
+          "linkpath": "NoteL08.txt",
+          "sourcePath": "L08/Ext/Source.md"
+        },
+        {
+          "linkpath": "NoteL08.txt.md",
+          "sourcePath": "L08/Ext/Source.md"
+        },
+        {
+          "linkpath": "NoteL08.pdf",
+          "sourcePath": "L08/Ext/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L09-unicode",
+      "files": {
+        "L09/中文 空格/笔记L09.md": "<!-- identity:L09/中文 空格/笔记L09.md -->\n# Heading\ncontent ^block-id\n",
+        "L09/Ext/UpperL09.md": "<!-- identity:L09/Ext/UpperL09.md -->\n# Heading\ncontent ^block-id\n",
+        "L09/Source.md": "# Source\n"
+      },
+      "queries": [
+        {
+          "linkpath": "L09/中文 空格/笔记L09",
+          "sourcePath": "L09/Source.md"
+        },
+        {
+          "linkpath": "L09/中文%20空格/笔记L09",
+          "sourcePath": "L09/Source.md"
+        },
+        {
+          "linkpath": "笔记L09",
+          "sourcePath": "L09/Source.md"
+        },
+        {
+          "linkpath": "upperl09",
+          "sourcePath": "L09/Source.md"
+        },
+        {
+          "linkpath": "UPPERL09.MD",
+          "sourcePath": "L09/Source.md"
+        }
+      ]
+    },
+    {
+      "id": "L10-alias",
+      "files": {
+        "L10/TargetL10.md": "---\naliases: [NicknameL10]\n---\n<!-- identity:L10/TargetL10.md -->\n# Heading\ncontent ^block-id\n",
+        "L10/Source.md": "[[TargetL10|Shown]]\n[[NicknameL10]]\n[[TargetL10#Heading|Shown]]\n[[TargetL10#^block-id|Shown]]\n[[#Heading]]\n# Heading\n"
+      },
+      "queries": [
+        {
+          "linkpath": "TargetL10",
+          "sourcePath": "L10/Source.md"
+        },
+        {
+          "linkpath": "NicknameL10",
+          "sourcePath": "L10/Source.md"
+        }
+      ]
+    }
+  ],
+  "renames": [
+    {
+      "id": "R01",
+      "files": {
+        "R01/A/NoteR01.md": "<!-- identity:R01/A/NoteR01.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R01/Other.md": "# Other\n",
+        "R01/Source.md": "---\nref: \"[[R01/A/NoteR01]]\"\n---\nwiki [[R01/A/NoteR01]]\nalias [[R01/A/NoteR01|Shown]]\nheading [[R01/A/NoteR01#Heading|Shown]]\nblock [[R01/A/NoteR01#^block-id]]\nembed ![[R01/A/NoteR01]]\nmarkdown [Shown](A/NoteR01.md)\nmarkdown-heading [Shown](A/NoteR01.md#Heading)\ninline-code `[[R01/A/NoteR01]]`\n```md\n[[R01/A/NoteR01]]\n```\n%% [[R01/A/NoteR01]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R01/A/NoteR01.md",
+        "newPath": "R01/A/RenamedR01.md",
+        "decision": "automatic"
+      }
+    },
+    {
+      "id": "R02",
+      "files": {
+        "R02/A/NoteR02.md": "<!-- identity:R02/A/NoteR02.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R02/Other.md": "# Other\n",
+        "R02/Source.md": "---\nref: \"[[R02/A/NoteR02]]\"\n---\nwiki [[R02/A/NoteR02]]\nalias [[R02/A/NoteR02|Shown]]\nheading [[R02/A/NoteR02#Heading|Shown]]\nblock [[R02/A/NoteR02#^block-id]]\nembed ![[R02/A/NoteR02]]\nmarkdown [Shown](A/NoteR02.md)\nmarkdown-heading [Shown](A/NoteR02.md#Heading)\ninline-code `[[R02/A/NoteR02]]`\n```md\n[[R02/A/NoteR02]]\n```\n%% [[R02/A/NoteR02]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R02/A/NoteR02.md",
+        "newPath": "R02/C/deep/RenamedR02.md",
+        "decision": "automatic"
+      }
+    },
+    {
+      "id": "R03",
+      "files": {
+        "R03/A/NoteR03.md": "<!-- identity:R03/A/NoteR03.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R03/Other.md": "# Other\n",
+        "R03/Source.md": "---\nref: \"[[R03/A/NoteR03]]\"\n---\nwiki [[R03/A/NoteR03]]\nalias [[R03/A/NoteR03|Shown]]\nheading [[R03/A/NoteR03#Heading|Shown]]\nblock [[R03/A/NoteR03#^block-id]]\nembed ![[R03/A/NoteR03]]\nmarkdown [Shown](A/NoteR03.md)\nmarkdown-heading [Shown](A/NoteR03.md#Heading)\ninline-code `[[R03/A/NoteR03]]`\n```md\n[[R03/A/NoteR03]]\n```\n%% [[R03/A/NoteR03]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "storage",
+        "path": "R03/A/NoteR03.md",
+        "newPath": "R03/A/RenamedR03.md",
+        "decision": "automatic"
+      }
+    },
+    {
+      "id": "R04",
+      "files": {
+        "R04/A/NoteR04.md": "<!-- identity:R04/A/NoteR04.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R04/Other.md": "# Other\n",
+        "R04/Source.md": "---\nref: \"[[R04/A/NoteR04]]\"\n---\nwiki [[R04/A/NoteR04]]\nalias [[R04/A/NoteR04|Shown]]\nheading [[R04/A/NoteR04#Heading|Shown]]\nblock [[R04/A/NoteR04#^block-id]]\nembed ![[R04/A/NoteR04]]\nmarkdown [Shown](A/NoteR04.md)\nmarkdown-heading [Shown](A/NoteR04.md#Heading)\ninline-code `[[R04/A/NoteR04]]`\n```md\n[[R04/A/NoteR04]]\n```\n%% [[R04/A/NoteR04]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": false,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R04/A/NoteR04.md",
+        "newPath": "R04/A/RenamedR04.md",
+        "decision": "decline"
+      }
+    },
+    {
+      "id": "R05",
+      "files": {
+        "R05/A/NoteR05.md": "<!-- identity:R05/A/NoteR05.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R05/Other.md": "# Other\n",
+        "R05/Source.md": "---\nref: \"[[R05/A/NoteR05]]\"\n---\nwiki [[R05/A/NoteR05]]\nalias [[R05/A/NoteR05|Shown]]\nheading [[R05/A/NoteR05#Heading|Shown]]\nblock [[R05/A/NoteR05#^block-id]]\nembed ![[R05/A/NoteR05]]\nmarkdown [Shown](A/NoteR05.md)\nmarkdown-heading [Shown](A/NoteR05.md#Heading)\ninline-code `[[R05/A/NoteR05]]`\n```md\n[[R05/A/NoteR05]]\n```\n%% [[R05/A/NoteR05]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": false,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R05/A/NoteR05.md",
+        "newPath": "R05/A/RenamedR05.md",
+        "decision": "once"
+      }
+    },
+    {
+      "id": "R06",
+      "files": {
+        "R06/A/NoteR06.md": "<!-- identity:R06/A/NoteR06.md -->\n# Heading\ncontent ^block-id\n[Outgoing](../Other.md)\n",
+        "R06/Other.md": "# Other\n",
+        "R06/Source.md": "---\nref: \"[[R06/A/NoteR06]]\"\n---\nwiki [[R06/A/NoteR06]]\nalias [[R06/A/NoteR06|Shown]]\nheading [[R06/A/NoteR06#Heading|Shown]]\nblock [[R06/A/NoteR06#^block-id]]\nembed ![[R06/A/NoteR06]]\nmarkdown [Shown](A/NoteR06.md)\nmarkdown-heading [Shown](A/NoteR06.md#Heading)\ninline-code `[[R06/A/NoteR06]]`\n```md\n[[R06/A/NoteR06]]\n```\n%% [[R06/A/NoteR06]] %%\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": false,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R06/A/NoteR06.md",
+        "newPath": "R06/A/RenamedR06.md",
+        "decision": "always"
+      }
+    },
+    {
+      "id": "R07-collision",
+      "files": {
+        "R07/B/NoteR07.md": "<!-- identity:B -->\n",
+        "R07/A/SeedR07.md": "<!-- identity:seed -->\n",
+        "R07/A/Source.md": "[[NoteR07]]\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R07/A/SeedR07.md",
+        "newPath": "R07/A/NoteR07.md",
+        "decision": "automatic"
+      }
+    },
+    {
+      "id": "R08-unresolved-rename",
+      "files": {
+        "R08/SeedR08.md": "<!-- identity:seed -->\n",
+        "R08/Source.md": "[[FutureR08]]\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R08/SeedR08.md",
+        "newPath": "R08/FutureR08.md",
+        "decision": "automatic"
+      }
+    },
+    {
+      "id": "R09-unresolved-create",
+      "files": {
+        "R09/Source.md": "[[FutureR09]]\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true
+      },
+      "action": {
+        "kind": "create",
+        "path": "R09/FutureR09.md",
+        "text": "<!-- identity:created -->\n"
+      }
+    },
+    {
+      "id": "R10-folder",
+      "files": {
+        "R10/A/NoteR10.md": "<!-- identity:target -->\n[attachment](assets/pic.svg)\n",
+        "R10/A/assets/pic.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        "R10/A/Inner.md": "[[NoteR10]]\n",
+        "R10/Source.md": "[[R10/A/NoteR10]]\n![[R10/A/assets/pic.svg]]\n[Note](A/NoteR10.md)\n"
+      },
+      "settings": {
+        "alwaysUpdateLinks": true,
+        "newLinkFormat": "shortest",
+        "useMarkdownLinks": false
+      },
+      "action": {
+        "kind": "rename",
+        "via": "managed",
+        "path": "R10/A",
+        "newPath": "R10/Moved/A",
+        "decision": "automatic"
+      }
+    }
+  ]
+}

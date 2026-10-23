@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-23T05:43:45.136Z",
+  "status": "passed",
+  "transport": "real loopback HTTP",
+  "components": [
+    "cloud.app FastAPI/SQLite",
+    "desktop/vault-store.mjs",
+    "desktop/sync.mjs"
+  ],
+  "syntheticDataOnly": true,
+  "checks": [
+    {
+      "name": "temporary service startup",
+      "status": "passed"
+    },
+    {
+      "name": "account and remote vault API contract",
+      "status": "passed",
+      "durationMs": 474,
+      "registeredAndLoggedIn": true,
+      "isolatedRemoteVault": true
+    },
+    {
+      "name": "device A uploads and device B downloads text and PDF bytes",
+      "status": "passed",
+      "durationMs": 256,
+      "uploaded": 4,
+      "downloaded": 4,
+      "textExact": true,
+      "binaryExact": true,
+      "pdfBytes": 58,
+      "pdfSha256": "391934fc2eaca8dafc8b3882ec52556e3a202d1b182b914819cb55f24d0881a4",
+      "secondPassIdempotent": true
+    },
+    {
+      "name": "offline edits on both devices preserve a conflict copy",
+      "status": "passed",
+      "durationMs": 182,
+      "conflictCopies": 1,
+      "bothEditsPreservedOnBothDevices": true
+    },
+    {
+      "name": "real stale revision rejects with the desktop conflict error shape",
+      "status": "passed",
+      "durationMs": 7,
+      "httpStatus": 409,
+      "code": "revision_conflict"
+    },
+    {
+      "name": "deletion tombstone propagates without uploading local metadata",
+      "status": "passed",
+      "durationMs": 101,
+      "propagatedDeletes": 1,
+      "metadataRemainedLocal": true
+    },
+    {
+      "name": "cloud history restores text and deleted PDF onto both devices",
+      "status": "passed",
+      "durationMs": 157,
+      "textHistoryVersions": 2,
+      "deletedBinaryRestored": true,
+      "bothDevicesExact": true
+    },
+    {
+      "name": "selected Publish renders safe HTML and excludes private files",
+      "status": "passed",
+      "durationMs": 159,
+      "htmlSafe": true,
+      "selectedFilesOnly": true,
+      "snapshotStableUntilExplicitUpdate": true,
+      "binaryDownloadExact": true,
+      "explicitUpdateWorks": true,
+      "revokedImmediately": true
+    },
+    {
+      "name": "real incremental changes paginate and stay monotonic",
+      "status": "passed",
+      "durationMs": 36,
+      "pages": 5,
+      "events": 10,
+      "cursor": 10,
+      "noDuplicateOrMissingRevision": true
+    },
+    {
+      "name": "logout invalidates the session after completed sync",
+      "status": "passed",
+      "durationMs": 24,
+      "revokedSessionStatus": 401
+    }
+  ],
+  "cleanup": {
+    "ownedServiceStopped": true,
+    "loopbackPortClosed": true,
+    "temporaryDataRemoved": true
+  },
+  "finishedAt": "2026-10-23T05:43:47.969Z",
+  "durationMs": 2833,
+  "passedChecks": 10
+}

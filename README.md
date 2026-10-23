@@ -1,5 +1,7 @@
 # PaperEveryWhere / PaperDesk
 
+本分支 `feature/obsidian-selfhosted` 新增独立的 **VaultDesk**：基于 Obsidian 1.13.7 的 REA 行为研究，采用本地 Markdown 知识库、Windows 桌面客户端和自托管账号／同步／发布服务。代码与运行方式见 [obsidian/README.md](obsidian/README.md)，逐项兼容范围见 [obsidian/docs/parity.md](obsidian/docs/parity.md)。这是可运行的开发预览，尚未达到全量 Obsidian 行为与插件生态兼容。下文仍为原 PaperDesk 项目的说明。
+
 PaperEveryWhere 仓库中的应用名为 **PaperDesk**，使用 Flutter 和 FastAPI 独立实现文献阅读与批注客户端。本项目不是 ReadPaper 官方客户端；不分发原应用代码、图像资源或用户资料。
 
 当前开发版 **0.5.0** 默认使用 ReadPaper 云端文献与批注服务，AI、翻译和视觉 OCR 使用自有服务。客户端及新网关只在会话内存中处理业务数据，不初始化本地文献数据库、磁盘 PDF 缓存或持久待同步队列。

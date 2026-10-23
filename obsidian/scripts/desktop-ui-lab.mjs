@@ -1,0 +1,24 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawn} from 'node:child_process';
+import {starter} from '../app/preview.js';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const options=process.argv.slice(2);
+const flag=name=>options.includes(name)?options[options.indexOf(name)+1]:undefined;
+const port=Number(flag('--port')||9332);
+if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Invalid debugging port');
+const packaged=flag('--executable');
+const lab=path.join(root,'output',`desktop-ui-${Date.now()}`),vault=path.join(lab,'vault');
+await fs.mkdir(vault,{recursive:true});
+for(const[p,text]of Object.entries(starter)){await fs.mkdir(path.dirname(path.join(vault,p)),{recursive:true});await fs.writeFile(path.join(vault,p),text);}
+await fs.mkdir(path.join(vault,'附件'),{recursive:true});
+await fs.copyFile(path.join(root,'..','client','test','fixtures','reader.pdf'),path.join(vault,'附件','参考.pdf'));
+await fs.writeFile(path.join(vault,'附件测试.md'),'# 附件测试\n\n![[附件/参考.pdf#page=1]]\n\n[PDF 页面](附件/参考.pdf#page=1)\n');
+await fs.writeFile(path.join(vault,'附件','code-sample.js'),"const sentinel = '保留原文';\n");
+await fs.writeFile(path.join(root,'output',port===9332?'desktop-ui-current.json':`desktop-ui-current-${port}.json`),JSON.stringify({lab,vault,port},null,2));
+const env={...process.env,VAULTDESK_VAULT:vault,VAULTDESK_TEST_MODE:'1'};delete env.ELECTRON_RUN_AS_NODE;delete env.VAULTDESK_DEV_URL;
+const child=spawn(packaged?path.resolve(packaged):path.join(root,'node_modules','electron','dist','electron.exe'),[...(packaged?[]:[root]),`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1'],{cwd:root,env,windowsHide:true,stdio:'inherit'});
+console.log(JSON.stringify({pid:child.pid,lab,vault}));
+process.on('SIGINT',()=>child.kill());
+child.on('exit',code=>{process.exitCode=code||0;});
