@@ -160,7 +160,7 @@ Wikilink 不做 URL 百分号解码，Markdown URL 做解码；实际查找统�
 
 ### Chromium 组合管线验证
 
-通过 CDP `Input.imeSetComposition` 创建预编辑，再用 `Input.insertText` 提交。此方式实际经过 Chromium 的组合与 DOM 输入管线，`compositionstart`、`compositionupdate` 和 `insertCompositionText` 的 beforeinput/input 事件为 `isTrusted=true`；本次观察的 compositionend 由 CM 补发，为 `isTrusted=false`。没有打开 Windows 输入法候选窗口，不能据此声称完成系统输入法验收。
+通过 CDP `Input.imeSetComposition` 创建预编辑，再用 `Input.insertText` 提交。此方式实际经过 Chromium 的组合与 DOM 输入管线，`compositionstart`、`compositionupdate` 和 `insertCompositionText` 的 beforeinput/input 事件为 `isTrusted=true`；本次还观察到 `isTrusted=false` 的 compositionend，其来源未确定，不作为系统输入法提交证据。没有打开 Windows 输入法候选窗口，不能据此声称完成系统输入法验收。
 
 | 场景 | 实际结果 |
 | --- | --- |
