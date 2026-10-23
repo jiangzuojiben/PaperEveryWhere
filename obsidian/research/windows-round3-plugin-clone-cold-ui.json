@@ -1,0 +1,65 @@
+{
+  "scope": {
+    "url": "file:///C:/Users/[user]/Documents/%E6%96%87%E6%A1%A3%E8%B5%84%E6%96%99/PaperDesk/obsidian/release/VaultDesk-0.3.1-Windows-x64/resources/app/dist/index.html",
+    "vaultPath": "C:\\Users\\[user]\\Documents\\文档资料\\PaperDesk\\obsidian\\output\\desktop-ui-1792753241503\\vault"
+  },
+  "cloned": [
+    "Synthetic counter: 3",
+    "Synthetic counter: 3"
+  ],
+  "independent": [
+    "Synthetic counter: 3",
+    "Synthetic counter: 4"
+  ],
+  "stored": [
+    {
+      "pane": "pane-82b8238b-87f6-4a68-aad4-a83e0df26055",
+      "path": "@plugin-view:leaf-bf60a2cd-3396-4de7-a42e-a91e72e88331",
+      "type": "synthetic-counter-view",
+      "state": {
+        "file": "Synthetic payload.md",
+        "count": 3
+      }
+    },
+    {
+      "pane": "pane-90b100bd-0bb6-47f8-9a1b-5f9bc9af06c9",
+      "path": "@plugin-view:leaf-1defdf40-4496-4f24-8ce5-da577a26abd2",
+      "type": "synthetic-counter-view",
+      "state": {
+        "file": "Synthetic payload.md",
+        "count": 4
+      }
+    }
+  ],
+  "restored": [
+    "Synthetic counter: 3",
+    "Synthetic counter: 4"
+  ],
+  "after": [
+    {
+      "pane": "pane-82b8238b-87f6-4a68-aad4-a83e0df26055",
+      "path": "@plugin-view:leaf-bf60a2cd-3396-4de7-a42e-a91e72e88331",
+      "type": "synthetic-counter-view",
+      "state": {
+        "file": "Synthetic payload.md",
+        "count": 3
+      }
+    },
+    {
+      "pane": "pane-90b100bd-0bb6-47f8-9a1b-5f9bc9af06c9",
+      "path": "@plugin-view:leaf-1defdf40-4496-4f24-8ce5-da577a26abd2",
+      "type": "synthetic-counter-view",
+      "state": {
+        "file": "Synthetic payload.md",
+        "count": 4
+      }
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": []
+  },
+  "verifiedAt": "2026-10-23T11:02:28.402Z",
+  "limit": "Renderer reload and explicit plugin re-enable; process relaunch is covered separately for Markdown layouts.",
+  "packagedVersion": "0.3.1"
+}

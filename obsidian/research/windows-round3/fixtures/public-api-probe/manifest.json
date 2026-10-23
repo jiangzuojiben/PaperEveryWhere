@@ -1,0 +1,9 @@
+{
+  "id": "public-api-probe",
+  "name": "Reference Public API Probe",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.4",
+  "description": "Synthetic, marker-guarded public API observations for an explicitly installed local compatibility lab.",
+  "author": "Independent compatibility laboratory",
+  "isDesktopOnly": true
+}

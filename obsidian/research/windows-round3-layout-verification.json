@@ -1,0 +1,734 @@
+{
+  "schemaVersion": 1,
+  "verifiedDate": "2026-10-23",
+  "scope": "Synthetic vault layout regression on the identified packaged application",
+  "passed": true,
+  "runId": "layout-1792753258136-d2f0ce",
+  "artifact": {
+    "kind": "packaged-application",
+    "appVersion": "0.3.1",
+    "executable": "VaultDesk.exe",
+    "bundle": "index-CWnBlYx-.js",
+    "sha256": "D47B19986BD14BACE1441FCE3267EEC7C3230D813E6D6DE263B482801167277D",
+    "runtime": {
+      "electron": "42.11.9",
+      "chromium": "148.0.7778.280",
+      "node": "24.19.0"
+    }
+  },
+  "counts": {
+    "modelTests": 29,
+    "browserMainChecks": 27,
+    "browserGeometryChecks": 5,
+    "nativeChecks": 8,
+    "nativeLaunches": 4
+  },
+  "nativeChecks": [
+    {
+      "name": "native startup restores mixed split ratios, pinned tabs, per-tab modes, scroll and sidebar geometry",
+      "passed": true,
+      "detail": {
+        "panes": [
+          {
+            "id": "pane-a",
+            "x": 47,
+            "y": 35,
+            "width": 347.0625,
+            "height": 805.3333740234375
+          },
+          {
+            "id": "pane-b",
+            "x": 400.0625,
+            "y": 35,
+            "width": 590.9375,
+            "height": 487.59375
+          },
+          {
+            "id": "pane-c",
+            "x": 400.0625,
+            "y": 528.59375,
+            "width": 590.9375,
+            "height": 311.7395935058594
+          }
+        ],
+        "splits": [
+          {
+            "id": "root-mixed",
+            "direction": "vertical",
+            "x": 47,
+            "y": 35,
+            "width": 944,
+            "height": 805.3333740234375
+          },
+          {
+            "id": "right-stack",
+            "direction": "horizontal",
+            "x": 400.0625,
+            "y": 35,
+            "width": 590.9375,
+            "height": 805.3333740234375
+          }
+        ],
+        "sidebars": [
+          {
+            "side": "left",
+            "collapsed": "true",
+            "x": 47,
+            "y": 35,
+            "width": 0,
+            "height": 805.3333740234375
+          },
+          {
+            "side": "right",
+            "collapsed": "false",
+            "x": 991,
+            "y": 35,
+            "width": 277,
+            "height": 805.3333740234375
+          }
+        ],
+        "editors": [
+          {
+            "pane": "pane-a",
+            "path": "A#literal.md",
+            "mode": "source",
+            "scroll": 900
+          },
+          {
+            "pane": "pane-b",
+            "path": "B.md",
+            "mode": "live",
+            "scroll": 500
+          },
+          {
+            "pane": "pane-c",
+            "path": "C.md",
+            "mode": "reading",
+            "scroll": 0,
+            "readingScroll": 650
+          }
+        ]
+      }
+    },
+    {
+      "name": "reading-to-source mode switch preserves independent hidden source and reading scroll positions",
+      "passed": true
+    },
+    {
+      "name": "restored source cursor inserts text at exact saved offset in a literal-hash filename",
+      "passed": true
+    },
+    {
+      "name": "tab switch restores independent editor scroll and hidden-tab view state",
+      "passed": true
+    },
+    {
+      "name": "native pointer dragging persists nested split ratios and sidebar width",
+      "passed": true,
+      "detail": {
+        "layout": {
+          "type": "split",
+          "id": "root-mixed",
+          "direction": "vertical",
+          "children": [
+            {
+              "type": "leaf",
+              "id": "pane-a"
+            },
+            {
+              "type": "split",
+              "id": "right-stack",
+              "direction": "horizontal",
+              "children": [
+                {
+                  "type": "leaf",
+                  "id": "pane-b"
+                },
+                {
+                  "type": "leaf",
+                  "id": "pane-c"
+                }
+              ],
+              "sizes": [
+                0.5662135134883362,
+                0.43378648651166385
+              ]
+            }
+          ],
+          "sizes": [
+            0.43929637526652454,
+            0.5607036247334755
+          ]
+        },
+        "sidebars": {
+          "left": {
+            "width": 231,
+            "collapsed": true
+          },
+          "right": {
+            "width": 300,
+            "collapsed": false
+          }
+        }
+      }
+    },
+    {
+      "name": "named layout saved through native UI includes nested tree, tabs and sidebars",
+      "passed": true
+    },
+    {
+      "name": "graceful native restart restores layout, pinning, modes, cursor and scrolling with named layouts",
+      "passed": true,
+      "detail": {
+        "panes": [
+          {
+            "id": "pane-a",
+            "x": 47,
+            "y": 35,
+            "width": 401.9583435058594,
+            "height": 805.3333740234375
+          },
+          {
+            "id": "pane-b",
+            "x": 454.9583435058594,
+            "y": 35,
+            "width": 513.0416870117188,
+            "height": 452.5833435058594
+          },
+          {
+            "id": "pane-c",
+            "x": 454.9583435058594,
+            "y": 493.5833435058594,
+            "width": 513.0416870117188,
+            "height": 346.7395935058594
+          }
+        ],
+        "splits": [
+          {
+            "id": "root-mixed",
+            "direction": "vertical",
+            "x": 47,
+            "y": 35,
+            "width": 921,
+            "height": 805.3333740234375
+          },
+          {
+            "id": "right-stack",
+            "direction": "horizontal",
+            "x": 454.9583435058594,
+            "y": 35,
+            "width": 513.0416870117188,
+            "height": 805.3333740234375
+          }
+        ],
+        "sidebars": [
+          {
+            "side": "left",
+            "collapsed": "true",
+            "x": 47,
+            "y": 35,
+            "width": 0,
+            "height": 805.3333740234375
+          },
+          {
+            "side": "right",
+            "collapsed": "false",
+            "x": 968,
+            "y": 35,
+            "width": 300,
+            "height": 805.3333740234375
+          }
+        ],
+        "editors": [
+          {
+            "pane": "pane-a",
+            "path": "A#literal.md",
+            "mode": "source",
+            "scroll": 777.3333129882812
+          },
+          {
+            "pane": "pane-b",
+            "path": "B.md",
+            "mode": "live",
+            "scroll": 500
+          },
+          {
+            "pane": "pane-c",
+            "path": "C.md",
+            "mode": "reading",
+            "scroll": 0,
+            "readingScroll": 650
+          }
+        ]
+      }
+    },
+    {
+      "name": "named layouts restore same-path cursor and scroll while empty tab groups survive native restart",
+      "passed": true
+    }
+  ],
+  "initialGeometry": {
+    "panes": [
+      {
+        "id": "pane-a",
+        "x": 47,
+        "y": 35,
+        "width": 347.0625,
+        "height": 805.3333740234375
+      },
+      {
+        "id": "pane-b",
+        "x": 400.0625,
+        "y": 35,
+        "width": 590.9375,
+        "height": 487.59375
+      },
+      {
+        "id": "pane-c",
+        "x": 400.0625,
+        "y": 528.59375,
+        "width": 590.9375,
+        "height": 311.7395935058594
+      }
+    ],
+    "splits": [
+      {
+        "id": "root-mixed",
+        "direction": "vertical",
+        "x": 47,
+        "y": 35,
+        "width": 944,
+        "height": 805.3333740234375
+      },
+      {
+        "id": "right-stack",
+        "direction": "horizontal",
+        "x": 400.0625,
+        "y": 35,
+        "width": 590.9375,
+        "height": 805.3333740234375
+      }
+    ],
+    "sidebars": [
+      {
+        "side": "left",
+        "collapsed": "true",
+        "x": 47,
+        "y": 35,
+        "width": 0,
+        "height": 805.3333740234375
+      },
+      {
+        "side": "right",
+        "collapsed": "false",
+        "x": 991,
+        "y": 35,
+        "width": 277,
+        "height": 805.3333740234375
+      }
+    ],
+    "editors": [
+      {
+        "pane": "pane-a",
+        "path": "A#literal.md",
+        "mode": "source",
+        "scroll": 900
+      },
+      {
+        "pane": "pane-b",
+        "path": "B.md",
+        "mode": "live",
+        "scroll": 500
+      },
+      {
+        "pane": "pane-c",
+        "path": "C.md",
+        "mode": "reading",
+        "scroll": 0,
+        "readingScroll": 650
+      }
+    ]
+  },
+  "restoredGeometry": {
+    "panes": [
+      {
+        "id": "pane-a",
+        "x": 47,
+        "y": 35,
+        "width": 401.9583435058594,
+        "height": 805.3333740234375
+      },
+      {
+        "id": "pane-b",
+        "x": 454.9583435058594,
+        "y": 35,
+        "width": 513.0416870117188,
+        "height": 452.5833435058594
+      },
+      {
+        "id": "pane-c",
+        "x": 454.9583435058594,
+        "y": 493.5833435058594,
+        "width": 513.0416870117188,
+        "height": 346.7395935058594
+      }
+    ],
+    "splits": [
+      {
+        "id": "root-mixed",
+        "direction": "vertical",
+        "x": 47,
+        "y": 35,
+        "width": 921,
+        "height": 805.3333740234375
+      },
+      {
+        "id": "right-stack",
+        "direction": "horizontal",
+        "x": 454.9583435058594,
+        "y": 35,
+        "width": 513.0416870117188,
+        "height": 805.3333740234375
+      }
+    ],
+    "sidebars": [
+      {
+        "side": "left",
+        "collapsed": "true",
+        "x": 47,
+        "y": 35,
+        "width": 0,
+        "height": 805.3333740234375
+      },
+      {
+        "side": "right",
+        "collapsed": "false",
+        "x": 968,
+        "y": 35,
+        "width": 300,
+        "height": 805.3333740234375
+      }
+    ],
+    "editors": [
+      {
+        "pane": "pane-a",
+        "path": "A#literal.md",
+        "mode": "source",
+        "scroll": 777.3333129882812
+      },
+      {
+        "pane": "pane-b",
+        "path": "B.md",
+        "mode": "live",
+        "scroll": 500
+      },
+      {
+        "pane": "pane-c",
+        "path": "C.md",
+        "mode": "reading",
+        "scroll": 0,
+        "readingScroll": 650
+      }
+    ]
+  },
+  "savedLayout": {
+    "type": "split",
+    "id": "root-mixed",
+    "direction": "vertical",
+    "children": [
+      {
+        "type": "leaf",
+        "id": "pane-a"
+      },
+      {
+        "type": "split",
+        "id": "right-stack",
+        "direction": "horizontal",
+        "children": [
+          {
+            "type": "leaf",
+            "id": "pane-b"
+          },
+          {
+            "type": "leaf",
+            "id": "pane-c"
+          }
+        ],
+        "sizes": [
+          0.5662135134883362,
+          0.43378648651166385
+        ]
+      }
+    ],
+    "sizes": [
+      0.43929637526652454,
+      0.5607036247334755
+    ]
+  },
+  "savedSidebars": {
+    "left": {
+      "width": 231,
+      "collapsed": true
+    },
+    "right": {
+      "width": 300,
+      "collapsed": false
+    }
+  },
+  "savedTabs": [
+    {
+      "id": "pane-a",
+      "tabs": [
+        "A#literal.md",
+        "D.md"
+      ],
+      "active": "A#literal.md",
+      "pinned": [
+        "A#literal.md"
+      ],
+      "tabStates": {
+        "A#literal.md": {
+          "mode": "source",
+          "path": "A#literal.md",
+          "cursor": {
+            "anchor": 2013,
+            "head": 2013
+          },
+          "selections": [
+            {
+              "anchor": 2013,
+              "head": 2013
+            }
+          ],
+          "mainIndex": 0,
+          "scroll": {
+            "top": 777.3333129882812,
+            "left": 0
+          },
+          "readingScrollTop": 900
+        },
+        "D.md": {
+          "mode": "source",
+          "path": "D.md",
+          "cursor": {
+            "anchor": 888,
+            "head": 888
+          },
+          "selections": [
+            {
+              "anchor": 888,
+              "head": 888
+            }
+          ],
+          "mainIndex": 0,
+          "scroll": {
+            "top": 250,
+            "left": 0
+          },
+          "readingScrollTop": 250
+        }
+      }
+    },
+    {
+      "id": "pane-b",
+      "tabs": [
+        "B.md"
+      ],
+      "active": "B.md",
+      "pinned": [],
+      "tabStates": {
+        "B.md": {
+          "mode": "live",
+          "path": "B.md",
+          "cursor": {
+            "anchor": 1700,
+            "head": 1700
+          },
+          "selections": [
+            {
+              "anchor": 1700,
+              "head": 1700
+            }
+          ],
+          "mainIndex": 0,
+          "scroll": {
+            "top": 500,
+            "left": 0
+          },
+          "readingScrollTop": 500
+        }
+      }
+    },
+    {
+      "id": "pane-c",
+      "tabs": [
+        "C.md"
+      ],
+      "active": "C.md",
+      "pinned": [],
+      "tabStates": {
+        "C.md": {
+          "mode": "reading",
+          "path": "C.md",
+          "cursor": {
+            "anchor": 100,
+            "head": 100
+          },
+          "selections": [
+            {
+              "anchor": 100,
+              "head": 100
+            }
+          ],
+          "mainIndex": 0,
+          "scroll": {
+            "top": 650,
+            "left": 0
+          },
+          "readingScrollTop": 650
+        }
+      }
+    }
+  ],
+  "namedLayouts": [
+    "Seed mixed",
+    "Native saved"
+  ],
+  "workspaceWrites": [
+    {
+      "pendingWhenQuitRequested": 0,
+      "total": 16,
+      "completed": 16,
+      "failures": 0,
+      "maxDurationMs": 21.0,
+      "lastNamedLayouts": [
+        "Seed mixed",
+        "Native saved"
+      ]
+    },
+    {
+      "pendingWhenQuitRequested": 0,
+      "total": 5,
+      "completed": 5,
+      "failures": 0,
+      "maxDurationMs": 10.0,
+      "lastNamedLayouts": [
+        "Seed mixed",
+        "Native saved"
+      ]
+    },
+    {
+      "pendingWhenQuitRequested": 0,
+      "total": 8,
+      "completed": 8,
+      "failures": 0,
+      "maxDurationMs": 9.0,
+      "lastNamedLayouts": [
+        "Seed mixed",
+        "Native saved",
+        "Empty group"
+      ]
+    },
+    {
+      "pendingWhenQuitRequested": 0,
+      "total": 3,
+      "completed": 3,
+      "failures": 0,
+      "maxDurationMs": 9.0,
+      "lastNamedLayouts": [
+        "Seed mixed",
+        "Native saved",
+        "Empty group"
+      ]
+    }
+  ],
+  "browserGeometryChecks": [
+    {
+      "check": "keyboard-minimum-pane-width",
+      "width": 100,
+      "expectedMinimum": 100,
+      "pass": true
+    },
+    {
+      "check": "narrow-right-sidebar",
+      "frameWidth": 180,
+      "contentDisplay": "flex",
+      "pass": true
+    },
+    {
+      "check": "sidebar-keyboard-after-viewport-shrink",
+      "before": 450,
+      "after": 440,
+      "expectedChange": -10,
+      "pass": true
+    },
+    {
+      "check": "sidebar-resize-after-viewport-shrink",
+      "before": 440,
+      "after": 420,
+      "expectedChange": -20,
+      "pass": true
+    },
+    {
+      "check": "short-pane-top-docking",
+      "originalHeight": 113.25,
+      "count": 6,
+      "movedAboveTarget": true,
+      "pass": true
+    }
+  ],
+  "limitations": [
+    "Cursor offsets and pixel scrolling differ from the reference application ephemeral line-based scroll representation.",
+    "This does not establish binary workspace compatibility, cross-DPI equivalence or crash recovery equivalence.",
+    "Evidence applies to the named build; later product changes need separate validation."
+  ],
+  "evidence": {
+    "fullReport": "output/layout-1792753258136-d2f0ce/report.json",
+    "browserReport": "output/playwright/workspace-layout-report.json",
+    "document": "docs/windows-round3-layout-verification.md",
+    "screenshot": "docs/images/windows3-layout.png"
+  },
+  "finalDiskReadback": {
+    "layout": {
+      "type": "split",
+      "id": "root-mixed",
+      "direction": "vertical",
+      "children": [
+        {
+          "type": "leaf",
+          "id": "pane-a"
+        },
+        {
+          "type": "split",
+          "id": "right-stack",
+          "direction": "horizontal",
+          "children": [
+            {
+              "type": "leaf",
+              "id": "pane-b"
+            },
+            {
+              "type": "leaf",
+              "id": "pane-c"
+            }
+          ],
+          "sizes": [
+            0.5662135134883362,
+            0.43378648651166385
+          ]
+        }
+      ],
+      "sizes": [
+        0.43929637526652454,
+        0.5607036247334755
+      ]
+    },
+    "activePaneId": "pane-b",
+    "paneCount": 3,
+    "namedLayouts": [
+      "Seed mixed",
+      "Native saved",
+      "Empty group"
+    ]
+  }
+}

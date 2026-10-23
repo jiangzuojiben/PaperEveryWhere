@@ -1,0 +1,122 @@
+{
+  "schema": "obsidian-windows-round3-layout-notes-v1",
+  "kind": "original-application-observations-not-independent-implementation-results",
+  "acceptedRun": "layout03",
+  "startedAt": "2026-10-23T10:05:34.936Z",
+  "completedAt": "2026-10-23T10:05:57.652Z",
+  "originalVersion": "1.13.7",
+  "originalElectronVersion": "39.8.3",
+  "coreSha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+  "probeSha256": "e18ed0faa6673503f2e75e56ca6a67e3bf5cfe8e4ca8b283d52b107bdc3b6fbd",
+  "rawDirectory": "research/raw/windows-round3-layout03",
+  "reportSha256": "7a13f4168aa0031e32061eab3bbecd6545a232b3f074ebb8fea08143ba8f5d27",
+  "reaSha256": "ccd8bb4f13ca86ea1609500c3fe94561f0d47b72548482b6c8c64fedfba9a87e",
+  "reaEvidenceId": "ev_49c3ff1eb8e3199813d06408d901fa9e6fac0ec560c7bb4cb290dbd215578c40",
+  "lifecycle": {
+    "applicationExitCode": 0,
+    "reaExitCode": 0,
+    "sourceUnchanged": true,
+    "observations": 10,
+    "probeErrors": 0
+  },
+  "evidenceBoundary": [
+    "REA operated the loopback controller and captured its report/hash; original Electron screenshots were independently captured through the laboratory shell.",
+    "The adapter base path was checked against the newly generated synthetic vault before any mutation.",
+    "Original methods and original DOM state were observed. No original implementation code was copied or changed.",
+    "Screenshots use showInactive, then return the laboratory window to hidden state; no foreground focus was requested.",
+    "All restoration here occurred within one original application process. No process restart, crash, DPI or multi-monitor restoration was measured.",
+    "Earlier runs layout01 and layout02 also completed with both exit codes zero and unchanged core hash; layout03 contains the expanded visible-line calibration and sidebar DOM checks."
+  ],
+  "observedContracts": {
+    "layoutTree": {
+      "case": "split-dimension-serialization",
+      "topology": "main split(vertical) -> tabs(A pinned,B selected), split(horizontal) -> tabs(C preview), tabs(D source)",
+      "directions": {
+        "vertical": "side-by-side columns in this observation",
+        "horizontal": "stacked rows in this observation"
+      },
+      "nodeTypes": ["split", "tabs", "leaf"],
+      "childDimensionField": "dimension",
+      "setDimensionArguments": [[37, 63], [61, 39]],
+      "observedSerialization": "setDimension(number) produced the same number as that child's dimension field; measured DOM widths and row heights changed accordingly.",
+      "selectedTab": "tabs.currentTab=1 selected the second child; right sidebar currentTab=2 selected its third child.",
+      "pin": "Pinned leaf contains pinned:true at the leaf level and also in its state object returned by getViewState; unpinned samples omit this serialized key."
+    },
+    "persistentMarkdownState": {
+      "case": "layout-persistent-versus-ephemeral-save",
+      "leafGetViewState": {
+        "type": "markdown",
+        "state": {"file": "Layout-B.md", "mode": "source", "source": false},
+        "icon": "lucide-file",
+        "title": "Layout-B"
+      },
+      "viewGetState": {"file": "Layout-B.md", "mode": "source", "source": false},
+      "modes": {
+        "sourceTrue": "source mode with Markdown syntax visible",
+        "sourceFalse": "Live Preview",
+        "preview": "reading view"
+      },
+      "cursorAndScroll": "Not present in sampled getLayout/getViewState/view.getState results; separately available through getEphemeralState."
+    },
+    "changeLayoutRoundtrip": {
+      "case": "change-layout-roundtrip-actual-state",
+      "actions": "Save original getLayout, detach other Markdown leaves, unpin/open Convert in the retained leaf, then changeLayout(saved).",
+      "mainJsonMatches": true,
+      "actualActiveIdMatches": true,
+      "actualActiveFileMatches": true,
+      "actualPinnedByIdMatches": true,
+      "actualCursorMatches": false,
+      "actualActiveScrollTopBefore": 2861.333251953125,
+      "actualActiveScrollTopAfter": 0,
+      "conclusion": "This persistent layout restored hierarchy, leaf identities, active file, pin and mode samples, but did not restore the recreated active editor's cursor/scroll.",
+      "inactiveLeafLimit": "Immediately after restoration the hidden pinned Layout-A leaf retained its serialized file/mode/source/pin but exposed no view.file/editor/getMode; activating it in the later source-mode case produced the actual editor. Do not assume an inactive restored leaf is already loaded."
+    },
+    "ephemeralSelectionAndScroll": {
+      "sourceCase": "source-mode-ephemeral-selection-and-scroll",
+      "saved": {
+        "cursor": {"from": {"line": 76, "ch": 3}, "to": {"line": 77, "ch": 9}},
+        "scroll": 63.1892360051473
+      },
+      "actualSelectionRestored": true,
+      "actualFirstVisibleLineTextBeforeAndAfter": "Line 061 synthetic text",
+      "actualFirstVisibleLineIndex": 63,
+      "actualFirstVisibleTopRelativeToViewportBeforeAndAfter": -4.541664123535156,
+      "lineHeightCssPixels": 24,
+      "domScrollTopBefore": 1800,
+      "domScrollTopAfter": 1632,
+      "conclusion": "The tested source=true roundtrip restored the actual selection and visible line/offset. Numeric DOM scrollTop changed despite the same visible position, so this field must not be interpreted as a stored pixel offset.",
+      "livePreviewCase": "ephemeral-roundtrip-actual-cursor-scroll",
+      "livePreviewLimit": "Cursor restored and getEphemeralState echoed the supplied scroll; actual first visible text shifted from Line 092 to Line 093 in this run. Do not claim exact Live Preview scrolling."
+    },
+    "scrollCalibration": {
+      "case": "source-ephemeral-scroll-unit-calibration",
+      "fixtureLineMapping": "Markdown line 0 is the heading, line 1 blank, line 2 contains Line 000 synthetic text.",
+      "inputs": [
+        {"scroll": 0, "domScrollTop": 0, "firstVisibleText": "# Layout-A.md", "firstVisibleTop": 76},
+        {"scroll": 10.5, "domScrollTop": 367.3333435058594, "firstVisibleText": "Line 008 synthetic text", "firstVisibleSourceLine": 10, "firstVisibleTop": -11.875, "lineHeight": 24},
+        {"scroll": 80.25, "domScrollTop": 2032.6666259765625, "firstVisibleText": "Line 077 synthetic text", "firstVisibleSourceLine": 79, "firstVisibleTop": -21.208332061767578, "lineHeight": 24}
+      ],
+      "limitedInterpretation": "The 10.5 sample is consistent with source-line index plus fraction of a line, and the saved 63.189236 value matches that relation. The 80.25 sample did not land at an exact corresponding line fraction. General rounding, virtual measurements and long-document accuracy remain unestablished; do not use these samples to promise arbitrary exact scrolling."
+    },
+    "sidebars": {
+      "cases": ["sidebar-layout-width-collapse-and-tab-selection", "sidebar-collapse-api-events"],
+      "layoutFields": ["left.width", "left.collapsed", "left.children[0].currentTab", "right.width", "right.collapsed", "right.children[0].currentTab"],
+      "left": {"width": 231, "currentTab": 1, "actualVisibleViewAfterExpand": "search", "collapsedActualWidth": 0, "expandedActualWidth": 231},
+      "right": {"width": 277, "currentTab": 2, "actualVisibleViewAfterExpand": "outline", "collapsedActualWidth": 0, "expandedActualWidth": 277},
+      "serialization": "Expanded sidebar samples omit collapsed; collapsed samples contain collapsed:true. Width is retained while collapsed and reused by expand().",
+      "actualChecks": "Selected headers carry is-active; search/outline leaf visibility and DOM widths were read after collapse/expand, not inferred only from JSON."
+    },
+    "events": {
+      "observedNamesAndCounts": {"active-leaf-change": 11, "file-open": 8, "layout-change": 10, "resize": 20},
+      "dimensionCase": "Only resize was observed during the direct setDimension calls plus explicit workspace.onResize.",
+      "ephemeralCases": "No subscribed workspace events were observed during the active-leaf saved ephemeral roundtrip or scroll-unit calibration. The source-selection case first activated a different, deferred leaf and did emit resize/active-leaf-change/file-open/layout-change; that sequence does not isolate selection setters as the cause.",
+      "limit": "Counts and ordering belong to this bounded sequence and may include deferred/coalesced events; no universal one-event-per-operation guarantee is established."
+    }
+  },
+  "screenshotsVisuallyInspected": [
+    "research/raw/windows-round3-layout01/layout-roundtrip-restored.png",
+    "research/raw/windows-round3-layout03/layout-source-scroll-before.png",
+    "research/raw/windows-round3-layout03/layout-source-scroll-restored.png"
+  ],
+  "reproduce": "node research/windows-round3/run.mjs NEW_UNIQUE_TAG layout.js"
+}

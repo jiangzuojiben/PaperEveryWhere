@@ -1,14 +1,16 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Annotation, Compartment, EditorSelection, EditorState, StateEffect, StateField} from '@codemirror/state';
+import {Annotation, Compartment, EditorSelection, EditorState, StateEffect, StateField, Transaction} from '@codemirror/state';
 import {Decoration, EditorView, WidgetType, drawSelection, dropCursor, highlightActiveLine, highlightSpecialChars, keymap, rectangularSelection} from '@codemirror/view';
-import {defaultKeymap, history, historyKeymap, indentWithTab, redo, selectAll, undo} from '@codemirror/commands';
+import {defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory} from '@codemirror/commands';
 import {HighlightStyle, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, syntaxTree} from '@codemirror/language';
 import {tags} from '@lezer/highlight';
 import {markdown, markdownKeymap, markdownLanguage} from '@codemirror/lang-markdown';
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
 import {highlightSelectionMatches, openSearchPanel, search, searchKeymap} from '@codemirror/search';
 import {headingSlug, hydrateMarkdown, navigateTarget, renderMarkdown} from './markdown.js';
-import {inlinePreviewRanges, selectionInfo} from './editor-helpers.mjs';
+import {inlinePreviewRanges, runMarkdownProcessing, selectionInfo} from './editor-helpers.mjs';
+import {createEditorApi} from './editor-api.mjs';
+import {createScrollRestorer} from './editor-scroll.mjs';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -52,7 +54,8 @@ const editorTheme = EditorView.theme({
 }, {dark: true});
 
 function toggleTask(view, lineIndex) {
-  if (view.state.readOnly) return;
+  const status = view.api?.getStatus();
+  if (view.state.readOnly || status?.pending || status?.composing || status?.readOnly) return;
   if (lineIndex < 0 || lineIndex >= view.state.doc.lines) return;
   const line = view.state.doc.line(lineIndex + 1);
   const match = line.text.match(/^(\s*(?:>\s*)*(?:[-+*]|\d+[.)])\s+)\[([ xX])\]/);
@@ -62,7 +65,7 @@ function toggleTask(view, lineIndex) {
 }
 
 function wrapSelection(view, marker) {
-  if (view.state.readOnly) return false;
+  if (view.state.readOnly || (view.api && !view.api.getStatus().canEdit)) return false;
   const changes = view.state.changeByRange(range => {
     const {from, to} = range, selected = view.state.sliceDoc(from, to), backwards = range.anchor > range.head;
     const unwrap = from >= marker.length && view.state.sliceDoc(from - marker.length, from) === marker && view.state.sliceDoc(to, to + marker.length) === marker;
@@ -118,9 +121,9 @@ class TaskWidget extends WidgetType {
 class MarkdownWidget extends WidgetType {
   constructor(text, from, context) {
     super(); this.text = text; this.from = from; this.context = context;
-    this.renderPath = context.current.path; this.renderFiles = context.current.files; this.readOnly = context.current.readOnly; this.assetResolver = context.current.resolveAsset;
+    this.renderPath = context.current.path; this.renderFiles = context.current.files; this.readOnly = context.current.readOnly; this.assetResolver = context.current.resolveAsset; this.processor = context.current.processMarkdown;
   }
-  eq(other) { return this.text === other.text && this.from === other.from && this.context === other.context && this.renderPath === other.renderPath && this.renderFiles === other.renderFiles && this.readOnly === other.readOnly && this.assetResolver === other.assetResolver; }
+  eq(other) { return this.text === other.text && this.from === other.from && this.context === other.context && this.renderPath === other.renderPath && this.renderFiles === other.renderFiles && this.readOnly === other.readOnly && this.assetResolver === other.assetResolver && this.processor === other.processor; }
   toDOM(view) {
     const wrapper = document.createElement('div');
     wrapper.className = 'cm-live-widget markdown-rendered';
@@ -129,7 +132,7 @@ class MarkdownWidget extends WidgetType {
     const edit = document.createElement('button'); edit.className = 'cm-widget-edit'; edit.type = 'button'; edit.textContent = '‹/›'; edit.title = '编辑源码'; edit.setAttribute('aria-label', '编辑此区块源码');
     edit.disabled = context.readOnly;
     const activate = event => {
-      if (this.context.current.readOnly || view.state.readOnly) return;
+      if (this.context.current.readOnly || view.state.readOnly || (view.api && !view.api.getStatus().canEdit)) return;
       event.preventDefault(); event.stopPropagation();
       const blockEnd = Math.min(this.from + this.text.length, view.state.doc.length);
       const source = event.target.closest?.('[data-source-line]');
@@ -152,10 +155,11 @@ class MarkdownWidget extends WidgetType {
       else if (!window.getSelection()?.toString()) activate(event);
     });
     wrapper.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target.classList.contains('callout-title')) { event.preventDefault(); event.target.click(); } });
-    hydrateMarkdown(wrapper, {resolveAsset: context.resolveAsset}).then(() => view.requestMeasure());
+    wrapper.disposeMarkdown = runMarkdownProcessing(wrapper, {hydrate: () => hydrateMarkdown(wrapper, {resolveAsset: context.resolveAsset}), processMarkdown: context.processMarkdown, context: {path: context.path, text: this.text, lineOffset: view.state.doc.lineAt(this.from).number - 1}, onReady: () => view.requestMeasure()});
     return wrapper;
   }
   ignoreEvent() { return true; }
+  destroy(dom) { dom.disposeMarkdown?.(); }
 }
 
 function liveDecorations(state, context) {
@@ -271,15 +275,16 @@ function replaceFromOutside(view, value) {
   let start = 0, oldEnd = previous.length, newEnd = value.length;
   while (start < oldEnd && start < newEnd && previous[start] === value[start]) start++;
   while (oldEnd > start && newEnd > start && previous[oldEnd - 1] === value[newEnd - 1]) { oldEnd--; newEnd--; }
-  view.dispatch({changes: {from: start, to: oldEnd, insert: value.slice(start, newEnd)}, annotations: [externalUpdate.of(true)]});
+  view.dispatch({changes: {from: start, to: oldEnd, insert: value.slice(start, newEnd)}, annotations: [externalUpdate.of(true), Transaction.addToHistory.of(false), isolateHistory.of('full')]});
 }
 
-export default function Editor({path = '', value = '', onChange, mode: requestedMode = 'live', onNavigate, resolveAsset, files = {}, onReady, onSelectionChange, onPasteFiles, commands = [], readOnly = false}) {
+export default function Editor({path = '', value = '', onChange, mode: requestedMode = 'live', onNavigate, resolveAsset, processMarkdown, files = {}, onReady, onSelectionChange, onViewStateChange, initialViewState, viewStateRevision = 0, onPasteFiles, commands = [], readOnly = false}) {
   const [mode, setMode] = useState(requestedMode);
   const [shownPath, setShownPath] = useState(path);
-  const mount = useRef(null), preview = useRef(null), viewRef = useRef(null), states = useRef(new Map()), scrollPositions = useRef(new Map());
-  const currentPath = useRef(path), compositionTailUntil = useRef(0);
-  const incoming = {path, value, onChange, onNavigate, resolveAsset, files, mode, onReady, onSelectionChange, onPasteFiles, commands, readOnly};
+  const mount = useRef(null), preview = useRef(null), viewRef = useRef(null), states = useRef(new Map()), scrollPositions = useRef(new Map()), readingScrollPositions = useRef(new Map());
+  const currentPath = useRef(path), compositionTailUntil = useRef(0), destroyed = useRef(false), viewStateTimer = useRef(null), pendingRestore = useRef({path, state: initialViewState}), deferredSourceScroll = useRef(null), activeSourceRestore = useRef(null);
+  const restoredRevision = useRef(viewStateRevision);
+  const incoming = {path, value, onChange, onNavigate, resolveAsset, processMarkdown, files, mode, requestedMode, onReady, onSelectionChange, onViewStateChange, initialViewState, onPasteFiles, commands, readOnly};
   const requestedContext = useRef(incoming); requestedContext.current = incoming;
   const context = useRef(incoming);
   // Keep callbacks bound to the document still receiving composition events.
@@ -290,6 +295,13 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   const displayed = context.current;
   const html = useMemo(() => mode === 'reading' ? renderMarkdown(displayed.value, {path: displayed.path, files: displayed.files, rootPath: displayed.readOnly ? '__read_only__' : displayed.path}) : '', [displayed.value, displayed.path, displayed.files, mode, displayed.readOnly]);
   const compositionPending = () => viewRef.current?.compositionStarted || performance.now() < compositionTailUntil.current;
+  const publishViewState = () => {
+    clearTimeout(viewStateTimer.current); viewStateTimer.current = null;
+    const api = viewRef.current?.api;
+    if (!api || destroyed.current || pendingRestore.current?.path === currentPath.current || activeSourceRestore.current?.path === currentPath.current) return;
+    context.current.onViewStateChange?.(api.getViewState(), context.current.path);
+  };
+  const queueViewState = () => { if (viewStateTimer.current === null) viewStateTimer.current = setTimeout(publishViewState, 80); };
 
   useEffect(() => {
     let timer;
@@ -299,6 +311,8 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   }, [requestedMode, path]);
 
   useEffect(() => {
+    destroyed.current = false;
+    let disposed = false;
     liveField.current = createLiveField(context);
     const sourceClick = (event, view) => {
       const target = event.target.closest?.('[data-note-target]');
@@ -334,19 +348,43 @@ export default function Editor({path = '', value = '', onChange, mode: requested
           context.current.onChange?.(context.current.value);
         }
         if (update.docChanged || update.selectionSet) context.current.onSelectionChange?.(selectionInfo(update.state));
+        if (update.docChanged || update.selectionSet) queueViewState();
       }),
     ];
     const makeState = text => EditorState.create({doc: text, extensions});
     const view = new EditorView({state: makeState(context.current.value), parent: mount.current});
     viewRef.current = view; viewRef.current.makeState = makeState;
-    const api = {
-      focus: () => view.focus(),
-      insert: text => { if (view.state.readOnly) return; view.dispatch(view.state.replaceSelection(String(text)), {scrollIntoView: true, userEvent: 'input'}); view.focus(); },
-      replaceSelection: text => { if (view.state.readOnly) return; view.dispatch(view.state.replaceSelection(String(text)), {scrollIntoView: true, userEvent: 'input'}); view.focus(); },
-      getSelection: () => view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to),
-      getSelectionInfo: () => { const {from, to} = view.state.selection.main; return {path: context.current.path, text: view.state.sliceDoc(from, to), from, to}; },
-      undo: () => !view.state.readOnly && undo(view), redo: () => !view.state.readOnly && redo(view), selectAll: () => selectAll(view), find: () => openSearchPanel(view), replace: () => openSearchPanel(view),
+    const scrollRestorer = createScrollRestorer(view, {getIdentity: () => disposed ? '' : `${context.current.path}\0${context.current.mode}`, onFailure: () => console.warn('Editor scroll restoration did not stabilize')});
+    const getSourceScroll = () => {
+      const path = context.current.path;
+      if (context.current.mode !== 'reading' && view.scrollDOM.clientHeight && deferredSourceScroll.current?.path !== path && activeSourceRestore.current?.path !== path) scrollPositions.current.set(path, {top: view.scrollDOM.scrollTop, left: view.scrollDOM.scrollLeft});
+      return scrollPositions.current.get(path) || {top: 0, left: 0};
+    };
+    const restoreSourceScroll = (scroll, done) => {
+      const path = context.current.path, target = {...getSourceScroll(), ...scroll};
+      scrollPositions.current.set(path, target);
+      if (context.current.mode === 'reading' || !view.scrollDOM.clientHeight) {
+        scrollRestorer.cancel(); deferredSourceScroll.current = {path, scroll: target}; done?.(true); return;
+      }
+      deferredSourceScroll.current = null;
+      const task = activeSourceRestore.current = {path};
+      scrollRestorer.restore(target, restored => {
+        if (activeSourceRestore.current === task) activeSourceRestore.current = null;
+        done?.(restored); queueViewState();
+      });
+    };
+    view.restoreSourceScroll = () => { const deferred = deferredSourceScroll.current; if (deferred?.path === context.current.path && context.current.mode !== 'reading') restoreSourceScroll(deferred.scroll); };
+    const onSourceScroll = () => { getSourceScroll(); queueViewState(); };
+    const readyForNavigation = () => { if (disposed || compositionPending() || currentPath.current !== requestedContext.current.path) return false; scrollRestorer.cancel(); return true; };
+    const api = Object.assign(createEditorApi({view, getContext: () => context.current, getRequestedContext: () => requestedContext.current, isComposing: compositionPending, isDestroyed: () => disposed || destroyed.current, getPreview: () => preview.current,
+      getSourceScroll,
+      getReadingScrollTop: () => { if (context.current.mode === 'reading' && preview.current) readingScrollPositions.current.set(context.current.path, preview.current.scrollTop); return readingScrollPositions.current.get(context.current.path) || 0; },
+      setReadingScrollTop: top => { readingScrollPositions.current.set(context.current.path, top); if (context.current.mode === 'reading' && preview.current) preview.current.scrollTop = top; },
+      restoreScroll: restoreSourceScroll, cancelScrollRestore: scrollRestorer.cancel,
+    }), {
+      find: () => readyForNavigation() && context.current.mode !== 'reading' && openSearchPanel(view), replace: () => readyForNavigation() && context.current.mode !== 'reading' && openSearchPanel(view),
       scrollToLine: number => {
+        if (!readyForNavigation()) return false;
         const lineNumber = Math.max(1, Math.min(Math.trunc(Number(number) || 1), view.state.doc.lines));
         if (context.current.mode === 'reading' && preview.current) {
           const blocks = [...preview.current.querySelectorAll('[data-source-line]')].filter(element => element.dataset.path === context.current.path);
@@ -358,6 +396,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
         return context.current.mode !== 'reading';
       },
       scrollToFootnote: id => {
+        if (!readyForNavigation()) return false;
         const label = String(id || '').replace(/^\[\^(.+)\]:?$/, '$1').replace(/^\^/, '');
         if (context.current.mode === 'reading' && preview.current) {
           const footnote = [...preview.current.querySelectorAll('[data-footnote-label]')].find(element => element.dataset.path === context.current.path && element.dataset.footnoteLabel === label);
@@ -373,6 +412,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
         return false;
       },
       scrollToHeading: target => {
+        if (!readyForNavigation()) return false;
         let fragment = String(target || '').replace(/^#/, ''); try { fragment = decodeURIComponent(fragment); } catch { /* Keep malformed anchors literal. */ }
         if (context.current.mode === 'reading' && preview.current) {
           const heading = [...preview.current.querySelectorAll('[id]')].find(element => element.id === fragment || element.id === headingSlug(fragment) || headingSlug(element.dataset.heading || '') === headingSlug(fragment));
@@ -385,11 +425,12 @@ export default function Editor({path = '', value = '', onChange, mode: requested
           }
         }
       },
-    };
+    });
     viewRef.current.api = api;
+    view.scrollDOM.addEventListener('scroll', onSourceScroll, {passive: true});
     context.current.onReady?.(api);
     context.current.onSelectionChange?.(selectionInfo(view.state));
-    return () => { context.current.onReady?.(null); view.destroy(); viewRef.current = null; };
+    return () => { scrollRestorer.cancel(); publishViewState(); disposed = true; destroyed.current = true; view.scrollDOM.removeEventListener('scroll', onSourceScroll); context.current.onReady?.(null); view.destroy(); viewRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -399,14 +440,17 @@ export default function Editor({path = '', value = '', onChange, mode: requested
       if (compositionPending()) { timer = setTimeout(apply, 80); return; }
       const next = requestedContext.current;
       if (currentPath.current !== next.path) {
+        publishViewState();
         states.current.set(currentPath.current, view.state);
-        scrollPositions.current.set(currentPath.current, view.scrollDOM.scrollTop);
-        if (states.current.size > 30) { const oldest = states.current.keys().next().value; states.current.delete(oldest); scrollPositions.current.delete(oldest); }
+        scrollPositions.current.set(currentPath.current, view.api.getViewState().scroll);
+        if (states.current.size > 30) { const oldest = states.current.keys().next().value; states.current.delete(oldest); scrollPositions.current.delete(oldest); readingScrollPositions.current.delete(oldest); }
         const cached = states.current.get(next.path);
+        pendingRestore.current = {path: next.path, state: next.initialViewState || (cached ? {path: next.path, scroll: scrollPositions.current.get(next.path)} : undefined)};
         currentPath.current = next.path; context.current = next;
         view.setState(cached || view.makeState(next.value));
         view.dispatch({effects: [modeSlot.current.reconfigure(next.mode === 'live' ? [liveField.current] : [highlightActiveLine()]), readOnlySlot.current.reconfigure([EditorState.readOnly.of(next.readOnly), EditorView.editable.of(!next.readOnly)])]});
-        view.scrollDOM.scrollTop = scrollPositions.current.get(next.path) || 0;
+        view.scrollDOM.scrollTop = scrollPositions.current.get(next.path)?.top || 0;
+        view.scrollDOM.scrollLeft = scrollPositions.current.get(next.path)?.left || 0;
         context.current.onSelectionChange?.(selectionInfo(view.state));
         setShownPath(next.path);
       }
@@ -417,17 +461,69 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   }, [path, value]);
 
   useEffect(() => {
-    const view = viewRef.current;
-    if (view) { view.dispatch({effects: modeSlot.current.reconfigure(mode === 'live' ? [liveField.current] : [highlightActiveLine()])}); view.requestMeasure(); }
-  }, [mode]);
-
-  useEffect(() => { if (currentPath.current === path) viewRef.current?.dispatch({effects: [readOnlySlot.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]), refreshPreview.of(null)]}); }, [readOnly, path]);
-
-  useEffect(() => { const view = viewRef.current; if (view && currentPath.current === path && mode === 'live' && !compositionPending()) view.dispatch({effects: refreshPreview.of(null)}); }, [files, resolveAsset, path]);
+    if (Object.is(restoredRevision.current, viewStateRevision)) return;
+    restoredRevision.current = viewStateRevision;
+    const next = requestedContext.current;
+    // Named layouts can target this same pane and file. Only an explicit
+    // revision restores that selection again; ordinary parent renders do not.
+    pendingRestore.current = {path: next.path, state: next.initialViewState};
+  }, [viewStateRevision]);
 
   useEffect(() => {
-    if (mode === 'reading' && preview.current) hydrateMarkdown(preview.current, {resolveAsset: displayed.resolveAsset});
-  }, [html, mode, displayed.resolveAsset]);
+    let timer;
+    const restore = () => {
+      const pending = pendingRestore.current, api = viewRef.current?.api;
+      if (!pending || !api || pending.path !== api.path) return;
+      if (api.getStatus().pending || compositionPending()) { timer = setTimeout(restore, 80); return; }
+      const complete = () => { if (pendingRestore.current === pending) { pendingRestore.current = null; queueViewState(); } };
+      if (pending.state && (!pending.state.path || pending.state.path === pending.path)) {
+        try { api.setViewState({...pending.state, path: pending.path}, {onRestored: complete}); } catch (error) { console.warn('Could not restore editor view state', error); complete(); }
+      } else complete();
+    };
+    restore();
+    return () => clearTimeout(timer);
+  }, [shownPath, mode, viewStateRevision]);
+
+  useEffect(() => { queueViewState(); }, [mode]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view) { view.dispatch({effects: modeSlot.current.reconfigure(mode === 'live' ? [liveField.current] : [highlightActiveLine()])}); view.restoreSourceScroll?.(); view.requestMeasure(); }
+  }, [mode, shownPath]);
+
+  useEffect(() => {
+    let timer;
+    const apply = () => {
+      if (currentPath.current !== path) return;
+      // Preserve the tail of an input composition that began while editable.
+      // The public API already observes requested readOnly and rejects writes.
+      if (compositionPending()) { timer = setTimeout(apply, 80); return; }
+      viewRef.current?.dispatch({effects: [readOnlySlot.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]), refreshPreview.of(null)]});
+    };
+    apply();
+    return () => clearTimeout(timer);
+  }, [readOnly, path]);
+
+  useEffect(() => {
+    let timer;
+    const apply = () => {
+      const view = viewRef.current;
+      if (!view || currentPath.current !== path || mode !== 'live') return;
+      if (compositionPending()) { timer = setTimeout(apply, 80); return; }
+      view.dispatch({effects: refreshPreview.of(null)});
+    };
+    apply();
+    return () => clearTimeout(timer);
+  }, [files, resolveAsset, processMarkdown, path, mode]);
+
+  useEffect(() => {
+    if (mode === 'reading' && preview.current) {
+      const element = preview.current, readingPath = displayed.path;
+      element.scrollTop = readingScrollPositions.current.get(readingPath) || 0;
+      const cleanup = runMarkdownProcessing(element, {hydrate: () => hydrateMarkdown(element, {resolveAsset: displayed.resolveAsset}), processMarkdown: displayed.processMarkdown, context: {path: displayed.path, text: displayed.value, lineOffset: 0}});
+      return cleanup;
+    }
+  }, [html, mode, displayed.path, displayed.value, displayed.resolveAsset, displayed.processMarkdown]);
 
   useEffect(() => { if (viewRef.current?.api) onReady?.(viewRef.current.api); }, [onReady]);
 
@@ -463,7 +559,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
     if (!incoming.length || !context.current.onPasteFiles) return;
     event.preventDefault(); event.stopPropagation();
     const view = viewRef.current;
-    if (!view || context.current.readOnly || view.state.readOnly) return;
+    if (!view || context.current.readOnly || requestedContext.current.readOnly || view.state.readOnly || compositionPending() || currentPath.current !== requestedContext.current.path) return;
     if (drop && mode !== 'reading') {
       const position = view.posAtCoords({x: event.clientX, y: event.clientY});
       if (position != null) view.dispatch({selection: EditorSelection.cursor(position)});
@@ -474,7 +570,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   return <div className={`vault-editor mode-${mode}`} data-editor-mode={mode} data-editor-path={shownPath} aria-busy={shownPath !== path} onMouseOver={inspectLink} onMouseMove={inspectLink} onMouseLeave={hideHover}
     onPasteCapture={receiveFiles} onDropCapture={event => receiveFiles(event, true)} onDragOver={event => { if (onPasteFiles && Array.from(event.dataTransfer?.types || []).includes('Files')) event.preventDefault(); }}>
     <div ref={mount} className="codemirror-mount" hidden={mode === 'reading'} />
-    {mode === 'reading' && <article ref={preview} className="markdown-rendered markdown-reading" aria-label="笔记阅读视图" tabIndex={0}
+    {mode === 'reading' && <article ref={preview} className="markdown-rendered markdown-reading" aria-label="笔记阅读视图" tabIndex={0} onScroll={event => { readingScrollPositions.current.set(displayed.path, event.currentTarget.scrollTop); queueViewState(); }}
       onClick={event => handleRenderedClick(event, {...context.current, view: viewRef.current})}
       onKeyDown={event => { if ((event.key === 'Enter' || event.key === ' ') && event.target.classList.contains('callout-title')) { event.preventDefault(); event.target.click(); } }}
       dangerouslySetInnerHTML={{__html: html}} />}

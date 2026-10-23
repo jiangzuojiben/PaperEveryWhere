@@ -17,6 +17,18 @@ export function validateSelectedSpan(selection, path, text) {
   return Number.isInteger(from) && Number.isInteger(to) && from >= 0 && to >= from && to <= text.length && typeof selection.text === 'string' && selection.text === text.slice(from, to);
 }
 
+// Rendering can outlive its widget. Late plugin children must be unloaded even
+// when their asynchronous processor resolves after that widget was removed.
+export function runMarkdownProcessing(element, {hydrate, processMarkdown, context, onReady, onError = error => console.error('Markdown rendering failed', error)}) {
+  let disposed = false, cleanup;
+  const dispose = callback => { try { callback?.(); } catch (error) { onError(error); } };
+  Promise.resolve().then(() => hydrate?.()).then(() => disposed ? undefined : processMarkdown?.(element, context)).then(result => {
+    if (typeof result === 'function') { if (disposed) dispose(result); else cleanup = result; }
+    if (!disposed) onReady?.();
+  }).catch(onError);
+  return () => { if (disposed) return; disposed = true; dispose(cleanup); cleanup = undefined; };
+}
+
 // The Markdown tree owns standard syntax. Regexes are only used for our small
 // extensions, and never inside code, escaped characters, or link destinations.
 export function inlinePreviewRanges(state) {

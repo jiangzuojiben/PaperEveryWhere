@@ -21,10 +21,17 @@ const records = new Map();
 const controllers = new Map();
 const flushRequests = new Map();
 const pendingWorkspaceSaves = new Set();
-let registry, local, cloud, attachments, applyVaultdeskUri, matchesCurrentVault, parseVaultdeskUri, webViewer;
+let registry, local, cloud, attachments, pluginRequest, applyVaultdeskUri, matchesCurrentVault, parseVaultdeskUri, webViewer;
 let readyForUris = false, quitting = false, quitPersisted = false, focusedId = null, restoringSession = true;
 let persistence = Promise.resolve(), uriQueue = Promise.resolve(), persistenceTimer;
 const mimeTypes = { '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.gif':'image/gif', '.webp':'image/webp', '.svg':'image/svg+xml', '.avif':'image/avif', '.pdf':'application/pdf', '.mp3':'audio/mpeg', '.wav':'audio/wav', '.ogg':'audio/ogg', '.m4a':'audio/mp4', '.mp4':'video/mp4', '.webm':'video/webm', '.txt':'text/plain', '.md':'text/plain' };
+
+function decodeAttachmentBytes(base64) {
+  if (typeof base64 !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) throw new Error('Expected base64-encoded attachment bytes');
+  const bytes = Buffer.from(base64, 'base64');
+  if (bytes.toString('base64') !== base64) throw new Error('Expected canonical base64-encoded attachment bytes');
+  return bytes;
+}
 
 function currentContext() {
   if (!registry) return null;
@@ -165,10 +172,12 @@ function installHandlers() {
     context.assertCurrent();
     return attachments.saveClipboardPng(context.store, image.toPNG(), destination);
   });
-  register('writeBinary', (context, relative, base64) => {
-    if (typeof base64 !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) throw new Error('Expected base64-encoded attachment bytes');
-    return context.store.createBytes(relative, Buffer.from(base64, 'base64'));
+  register('readBinary', async (context, relative) => {
+    const { data, mtime, version } = await context.store.readBytes(relative);
+    return { base64: data.toString('base64'), mtime, version };
   });
+  register('writeBinary', (context, relative, base64) => context.store.createBytes(relative, decodeAttachmentBytes(base64)));
+  register('modifyBinary', (context, relative, base64, expectedMtime, expectedVersion) => context.store.writeBytes(relative, decodeAttachmentBytes(base64), expectedMtime, expectedVersion));
   register('importFiles', async (context, destination = '') => {
     const result = await dialog.showOpenDialog(context.window, { title: 'Import attachments', properties: ['openFile', 'multiSelections'] });
     context.assertCurrent();
@@ -211,6 +220,7 @@ function installHandlers() {
     return { registered: true };
   });
   register('cloudRequest', (_context, config, endpoint, options) => cloud.cloudRequest(config, endpoint, options));
+  register('requestUrl', async (context, input) => { const result=await pluginRequest(input); context.assertCurrent(); return result; });
   register('sync', (context, config) => controller(context.store).syncNow(config));
   for (const method of ['configureSync', 'syncConfigure']) register(method, (context, config) => controller(context.store).configure(config));
   register('syncStatus', (context) => controller(context.store).getStatus());
@@ -351,6 +361,7 @@ app.whenReady().then(async () => {
   local = await import(moduleUrl('vault-store.mjs'));
   cloud = await import(moduleUrl('sync.mjs'));
   attachments = await import(moduleUrl('attachments.mjs'));
+  ({ pluginRequest } = await import(moduleUrl('plugin-request.mjs')));
   ({ applyVaultdeskUri, matchesCurrentVault, parseVaultdeskUri } = await import(moduleUrl('uri.mjs')));
   const { WindowRegistry } = await import(moduleUrl('window-registry.mjs'));
   registry = new WindowRegistry();

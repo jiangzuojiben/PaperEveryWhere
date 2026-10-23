@@ -5,6 +5,7 @@ import React, {
   useRef,
   useCallback,
   useId,
+  useSyncExternalStore,
 } from "react";
 import {
   Files,
@@ -73,6 +74,9 @@ import PdfViewer from "./PdfViewer.jsx";
 import WebViewer from "./WebViewer.jsx";
 import FileTree from "./FileTree.jsx";
 import HistoryPanel from "./HistoryPanel.jsx";
+import { WorkspaceLayout, WorkspaceSidebar } from "./WorkspaceLayout.jsx";
+import { PluginRibbon, PluginStatusBar, PluginViewMount, PluginViewTitle } from "./PluginSurfaces.jsx";
+import { createPluginWorkspaceAdapter } from "./plugin-workspace.mjs";
 import {
   BookmarksPanel,
   Slides as DesktopSlides,
@@ -96,6 +100,11 @@ import {
   remapPath,
   remapPanes,
   moveTab,
+  normalizeWorkspaceLayout,
+  splitWorkspacePane,
+  removeWorkspacePane,
+  updateWorkspaceTabState,
+  getPaneTabState,
 } from "../core/workspace.mjs";
 import {
   WorkspacesPanel,
@@ -106,6 +115,9 @@ import {
   canonicalHotkey,
 } from "./Utilities.jsx";
 
+const emptyPluginUI=Object.freeze({revision:0,markdownRevision:0});
+const emptyPluginSubscribe=()=>()=>{};
+const getEmptyPluginUI=()=>emptyPluginUI;
 const bridge = window.vaultdesk || createPreviewBridge();
 const title = (p) =>
   p
@@ -193,11 +205,21 @@ export default function App() {
     words: 0,
   });
   const [splitDirection, setSplitDirection] = useState("horizontal");
-  const [panes, setPanes] = useState([
-    { tabs: ["开始.md"], active: "开始.md" },
+  const [panes, setPaneRecords] = useState([
+    { id: "pane-1", tabs: ["开始.md"], active: "开始.md", tabStates: {} },
   ]);
+  const setPanes = useCallback(update => setPaneRecords(old => {
+    const next = typeof update === "function" ? update(old) : update;
+    if (next.length === old.length && next.every((pane,index)=>pane===old[index])) return old;
+    return next.map(pane => pane.id ? pane : { ...pane, id:"pane-" + crypto.randomUUID() });
+  }), []);
+  const [layout, setLayout] = useState(null);
+  const [sidebars, setSidebars] = useState({left:{width:250,collapsed:false},right:{width:257,collapsed:false}});
+  const liveWorkspace = useRef(null);
+  const pluginWorkspace = useRef(null);
   const [paneIndex, setPaneIndex] = useState(0);
   const [workspaces, setWorkspaces] = useState({});
+  const [viewStateRevision,setViewStateRevision]=useState(0);
   const [pdfPages, setPdfPages] = useState({});
   const [left, setLeft] = useState(true),
     [right, setRight] = useState(true),
@@ -205,7 +227,7 @@ export default function App() {
     [rightTab, setRightTab] = useState("outline");
   const [query, setQuery] = useState(""),
     [collapsed, setCollapsed] = useState(new Set()),
-    [mode, setMode] = useState("live");
+    [defaultMode, setDefaultMode] = useState("live");
   const [settings, setSettings] = useState(emptySettings),
     [bookmarks, setBookmarks] = useState([]),
     [dialog, setDialog] = useState(null),
@@ -227,6 +249,8 @@ export default function App() {
   const [plugins, setPlugins] = useState([]),
     [pluginCommands, setPluginCommands] = useState([]),
     [pluginHost, setPluginHost] = useState(null);
+  const pluginUI=useSyncExternalStore(pluginHost?.subscribeUI || emptyPluginSubscribe,pluginHost?.getUI || getEmptyPluginUI,getEmptyPluginUI);
+  const processPluginMarkdown=useMemo(()=>pluginHost ? (container,options)=>pluginHost.processMarkdown(container,options) : undefined,[pluginHost,pluginUI.markdownRevision ?? pluginUI.revision]);
   const runtime = useRef({});
   const pendingOpen = useRef(null);
   const pluginEvents = useRef(new Set());
@@ -249,6 +273,32 @@ export default function App() {
   const [recording, setRecording] = useState(false);
   const recorder = useRef(null);
   const active = panes[paneIndex]?.active;
+  const mode = panes[paneIndex]?.tabStates?.[active]?.mode || defaultMode;
+  function setMode(value,index=paneIndex) {
+    const current=panes[index]?.tabStates?.[panes[index]?.active]?.mode || defaultMode;
+    const next = typeof value === "function" ? value(current) : value;
+    setDefaultMode(next);
+    const argumentsIndex=index;
+    setPanes(old => old.map((pane,index) => index !== argumentsIndex || !pane.active ? pane : {
+      ...pane, tabStates:{...pane.tabStates,[pane.active]:{...pane.tabStates?.[pane.active],mode:next}}
+    }));
+  }
+  const editorFor = index => editors.current[panes[index]?.id];
+  function applyWorkspaceLayout(next) {
+    const normalized = normalizeWorkspaceLayout({...liveWorkspace.current,...next});
+    liveWorkspace.current = {...liveWorkspace.current,...normalized};
+    setPanes(normalized.panes); setLayout(normalized.layout); setPaneIndex(normalized.paneIndex);
+    setSidebars(normalized.sidebars);
+    setLeft(!normalized.sidebars.left.collapsed); setRight(!normalized.sidebars.right.collapsed);
+  }
+  function recordViewState(state,path,paneId) {
+    if (!state || state.path && state.path !== path) return;
+    setPanes(old => old.map(pane => {
+      if (pane.id !== paneId || !pane.tabs.includes(path)) return pane;
+      if (JSON.stringify(pane.tabStates?.[path]) === JSON.stringify(state)) return pane;
+      return {...pane,tabStates:{...pane.tabStates,[path]:state}};
+    }));
+  }
   const content = files[active] || "";
   useEffect(
     () => setSelection({ text: "", characters: 0, words: 0 }),
@@ -300,7 +350,7 @@ export default function App() {
           setSettings({ ...emptySettings, ...s.settings, ...w.settings });
           setBookmarks(normalizeBookmarks(w.bookmarks || []));
           setWorkspaces(w.workspaces || {});
-          setMode(w.mode || "live");
+          setDefaultMode(w.mode || "live");
           setRecent(w.recent || []);
           setPlugins((w.plugins || []).map((p) => ({ ...p, enabled: false })));
           setLeft(w.left !== false);
@@ -315,11 +365,10 @@ export default function App() {
             }));
         }
         const paths = s.files.filter((f) => !f.isDirectory).map((f) => f.path);
-        const restored = restorePanes(w?.panes, paths);
+        const restored = w?.panes?.length ? normalizeWorkspaceLayout(w,paths).panes : [];
         if (restored?.length) {
           restored.forEach((p) => (p.active ||= p.tabs[0]));
-          setPanes(restored);
-          setPaneIndex(Math.min(w?.paneIndex || 0, restored.length - 1));
+          applyWorkspaceLayout({...w,panes:restored});
         } else
           setPanes([
             {
@@ -407,7 +456,9 @@ export default function App() {
     return () => style.remove();
   }, [settings.customCss]);
   const workspace = useMemo(
-    () => ({
+    () => normalizeWorkspaceLayout({
+      layoutVersion: 2, layout, sidebars:{left:{...sidebars.left,collapsed:!left},right:{...sidebars.right,collapsed:!right}},
+      activePaneId:panes[paneIndex]?.id,
       panes,
       paneIndex,
       leftTab,
@@ -416,7 +467,7 @@ export default function App() {
       workspaces,
       settings,
       bookmarks,
-      mode,
+      mode:defaultMode,
       left,
       right,
       recent,
@@ -424,6 +475,7 @@ export default function App() {
       cloud: cloudPreferences(cloud),
     }),
     [
+      layout, sidebars,
       panes,
       paneIndex,
       leftTab,
@@ -432,7 +484,7 @@ export default function App() {
       workspaces,
       settings,
       bookmarks,
-      mode,
+      defaultMode,
       left,
       right,
       recent,
@@ -440,6 +492,7 @@ export default function App() {
       cloud,
     ],
   );
+  liveWorkspace.current = workspace;
   useEffect(() => {
     if (ready && !switching.current)
       bridge.saveWorkspace(workspace).catch((e) => notify(e.message));
@@ -600,7 +653,7 @@ export default function App() {
     if (subpath && !/\.pdf$/i.test(actual))
       setTimeout(
         () =>
-          editors.current[index]?.scrollToHeading?.(subpath.replace(/^#/, "")),
+          editorFor(index)?.scrollToHeading?.(subpath.replace(/^#/, "")),
         150,
       );
   }
@@ -630,7 +683,7 @@ export default function App() {
         open(p, index);
         if (sub.length && !/\.pdf$/i.test(p))
           setTimeout(
-            () => editors.current[index]?.scrollToHeading?.(sub.join("#")),
+            () => editorFor(index)?.scrollToHeading?.(sub.join("#")),
             150,
           );
       } else {
@@ -750,14 +803,12 @@ export default function App() {
       setBusy(false);
     }
   };
-  const split = () => {
-    setPanes((p) =>
-      p.length === 2
-        ? [p[paneIndex]]
-        : [p[0], { tabs: active ? [active] : [], active }],
-    );
-    setPaneIndex(0);
-  };
+  const split = (direction = "vertical",path,paneId) => run(async()=>{
+    await pluginHost?.captureViewStates?.();
+    const current=liveWorkspace.current;
+    applyWorkspaceLayout(splitWorkspacePane(current,paneId||current.activePaneId,direction,
+      path ? {path} : {}));
+  });
   const toggleBookmark = () => {
     if (active && !active.startsWith("@"))
       setBookmarks((b) => toggleFileBookmark(b, active));
@@ -776,7 +827,27 @@ export default function App() {
       value: "未命名.base",
       text: "views:\n  - type: table\n    name: 全部笔记\n",
     });
+  if (!pluginWorkspace.current) pluginWorkspace.current = createPluginWorkspaceAdapter({
+    getWorkspace:()=>liveWorkspace.current,
+    setWorkspace:next=>runtime.current.applyLayout(next),
+    getEditor:(paneId,path)=>{
+      const pane=liveWorkspace.current?.panes.find(p=>p.id===paneId),api=editors.current[paneId];
+      return runtime.current.isReady && !busyRef.current && pane?.active===path && api?.getSelectionInfo?.().path===path ? api : null;
+    },
+    onOpen:(path,state)=>runtime.current.onPluginOpen(path,state),
+    onSave:()=>bridge.saveWorkspace(liveWorkspace.current),
+  });
   runtime.current = {
+    applyLayout:applyWorkspaceLayout,
+    onPluginOpen:(path,state)=>{
+      setRecent(r=>[path,...r.filter(p=>p!==path)].slice(0,30));
+      const attempt=remaining=>{
+        const api=editors.current[state.paneId];
+        if(api?.getSelectionInfo?.().path!==path){if(remaining)setTimeout(()=>attempt(remaining-1),50);return;}
+        if(state.eState?.cursor)api.setCursor?.(state.eState.cursor);
+        if(state.subpath)api.scrollToHeading?.(state.subpath.replace(/^#/,""));
+      };setTimeout(()=>attempt(20),0);
+    },
     flush,
     workspace,
     isReady: ready,
@@ -796,6 +867,8 @@ export default function App() {
       getFiles: () => runtime.current.getFiles(),
       getActivePath: () => runtime.current.getActivePath(),
       openFile: (p, state) => runtime.current.openFile(p, state),
+      getEditor: leafId => pluginWorkspace.current.getEditor(leafId),
+      workspaceAdapter: pluginWorkspace.current,
       onEvent: (listener) => {
         pluginEvents.current.add(listener);
         return () => pluginEvents.current.delete(listener);
@@ -821,7 +894,12 @@ export default function App() {
         ? { scope: "workspace", name: "file-open", path: active }
         : { scope: "workspace", name: "file-open", args: [null] };
     for (const listener of pluginEvents.current) listener(event);
+    for (const listener of pluginEvents.current) listener({scope:"workspace",name:"active-leaf-change",args:[]});
   }, [active, paneIndex, pluginHost]);
+  const layoutEventKey=JSON.stringify({layout:workspace.layout,panes:panes.map(p=>({id:p.id,tabs:p.tabs,active:p.active,pinned:p.pinned,pluginViews:p.pluginViews})),activePaneId:workspace.activePaneId});
+  useEffect(()=>{
+    for(const listener of pluginEvents.current)listener({scope:"workspace",name:"layout-change",args:[]});
+  },[layoutEventKey,pluginHost]);
   useEffect(() => {
     if (!ready || !bridge.configureSync) return;
     if (!cloud.token || !cloud.vaultId) {
@@ -872,12 +950,9 @@ export default function App() {
     ],
     ["打开网页标签", "", () => setDialog({ type: "weburl" })],
     [
-      "切换分屏方向",
+      "向下分屏",
       "",
-      () =>
-        setSplitDirection((d) =>
-          d === "horizontal" ? "vertical" : "horizontal",
-        ),
+      () => split("horizontal"),
     ],
     ["固定/取消固定当前标签", "", () => togglePin(active, paneIndex)],
     ["打开命令面板", "Ctrl+P", () => setDialog({ type: "commands" })],
@@ -896,7 +971,7 @@ export default function App() {
       "笔记重组",
       "",
       () => {
-        const selected = editors.current[paneIndex]?.getSelectionInfo?.();
+        const selected = editorFor(paneIndex)?.getSelectionInfo?.();
         if (selected?.path !== active) {
           notify("组合输入尚未提交，请稍后重试。");
           return;
@@ -1040,22 +1115,7 @@ export default function App() {
     if (recorder.current)
       throw Error("请先停止录音并等待附件保存后再切换知识库。");
     await flush();
-    await bridge.saveWorkspace({
-      panes,
-      paneIndex,
-      leftTab,
-      rightTab,
-      splitDirection,
-      workspaces,
-      settings,
-      bookmarks,
-      mode,
-      left,
-      right,
-      recent,
-      plugins,
-      cloud: cloudPreferences(cloud),
-    });
+    await bridge.saveWorkspace(workspace);
     switching.current = true;
     setReady(false);
     vaultEpoch.current++;
@@ -1076,7 +1136,7 @@ export default function App() {
       setWorkspaces(w?.workspaces || {});
       setPdfPages({});
       setRecent(w?.recent || []);
-      setMode(w?.mode || "live");
+      setDefaultMode(w?.mode || "live");
       setLeft(w?.left !== false);
       setRight(w?.right !== false);
       setLeftTab(w?.leftTab || "files");
@@ -1094,12 +1154,9 @@ export default function App() {
       navHistory.current = [];
       navIndex.current = -1;
       const paths = s.files.filter((f) => !f.isDirectory).map((f) => f.path);
-      const valid = restorePanes(w?.panes, paths);
+      const valid = w?.panes?.length ? normalizeWorkspaceLayout(w,paths).panes : [];
       const p = paths.find((p) => p.endsWith(".md")) || paths[0];
-      setPanes(
-        valid?.length ? valid : [{ tabs: p ? [p] : [], active: p || null }],
-      );
-      setPaneIndex(0);
+      applyWorkspaceLayout({...w,panes:valid?.length ? valid : [{ tabs:p?[p]:[],active:p||null }]});
     } finally {
       switching.current = false;
       setReady(true);
@@ -1438,7 +1495,7 @@ export default function App() {
     suppliedSelection,
   ) {
     const selected =
-      suppliedSelection || editors.current[index]?.getSelectionInfo?.();
+      suppliedSelection || editorFor(index)?.getSelectionInfo?.();
     const original = fileRef.current[source];
     await flush();
     let imported = [];
@@ -1490,7 +1547,8 @@ export default function App() {
           visible={!dialog && !busy && ready}
         />
       );
-    if (!p)
+    if (p?.startsWith("@plugin-view:")) return <PluginViewMount host={pluginHost} leafId={p.slice(13)} />;
+    if (!p || p.startsWith("@empty:"))
       return (
         <div className="empty-pane">
           <div className="empty-mark">◇</div>
@@ -1574,7 +1632,7 @@ export default function App() {
       );
     return (
       <Editor
-        key={`${snapshot.vaultPath}:${i}`}
+        key={`${snapshot.vaultPath}:${panes[i]?.id}`}
         path={p}
         value={files[p] || ""}
         readOnly={busy || !ready || p !== panes[i]?.active}
@@ -1584,13 +1642,25 @@ export default function App() {
         onPasteFiles={(dropped, selected) =>
           run(() => importAttachments(dropped, p, i, selected))
         }
-        mode={mode}
+        mode={getPaneTabState(panes[i],p,defaultMode).mode}
+        initialViewState={panes[i]?.tabStates?.[p]}
+        viewStateRevision={viewStateRevision}
+        onViewStateChange={(state,path) => recordViewState(state,path,panes[i]?.id)}
+        processMarkdown={processPluginMarkdown}
         commands={commandItems.map(([name, , action]) => ({
           name,
           run: action,
         }))}
         files={allFiles}
-        onChange={(v) => change(p, v)}
+        onChange={(v) => {
+          change(p, v);
+          const paneId=panes[i]?.id,epoch=vaultEpoch.current;
+          queueMicrotask(()=>{
+            if(epoch!==vaultEpoch.current)return;
+            const leaf=pluginWorkspace.current?.getLeaves().find(row=>row.paneId===paneId&&row.path===p);
+            if(leaf)for(const listener of pluginEvents.current)listener({scope:"workspace",name:"editor-change",leafId:leaf.id,path:p});
+          });
+        }}
         onNavigate={(link) => navigate(link, p, i)}
         resolveAsset={(path) =>
           bridge.assetUrl(
@@ -1598,7 +1668,7 @@ export default function App() {
           )
         }
         onReady={(api) => {
-          editors.current[i] = api;
+          editors.current[panes[i]?.id] = api;
         }}
       />
     );
@@ -1606,7 +1676,7 @@ export default function App() {
 
   function paneContent(pane, i) {
     const path = pane.active,
-      key = snapshot.vaultPath + ":" + i;
+      key = snapshot.vaultPath + ":" + panes[i]?.id;
     const text =
       path &&
       isText(path) &&
@@ -1718,7 +1788,7 @@ export default function App() {
             label="命令面板"
             onClick={() => setDialog({ type: "commands" })}
           />
-          <div className="ribbon-space" />
+          <PluginRibbon host={pluginHost}/><div className="ribbon-space" />
           <IconButton
             icon={recording ? Square : Mic}
             label={recording ? "停止录音" : "录音"}
@@ -1737,6 +1807,9 @@ export default function App() {
             onClick={() => setDialog({ type: "settings", section: "editor" })}
           />
         </nav>
+        <WorkspaceSidebar side="left" width={sidebars.left.width} collapsed={!left}
+          onResize={width=>setSidebars(v=>({...v,left:{...v.left,width}}))}
+          onCollapsedChange={collapsed=>setLeft(!collapsed)}>
         {left && (
           <aside className="left-sidebar">
             <div className="sidebar-tabs">
@@ -1846,7 +1919,7 @@ export default function App() {
                         if (r.line != null)
                           setTimeout(
                             () =>
-                              editors.current[paneIndex]?.scrollToLine?.(
+                              editorFor(paneIndex)?.scrollToLine?.(
                                 r.line + 1,
                               ),
                             120,
@@ -1924,15 +1997,15 @@ export default function App() {
             </button>
           </aside>
         )}
-        <main
-          className={
-            "panes" + (splitDirection === "vertical" ? " vertical-split" : "")
-          }
-        >
-          {panes.map((pane, i) => (
+        </WorkspaceSidebar>
+        <main className="panes">
+          <WorkspaceLayout workspace={workspace} layout={workspace.layout} panes={workspace.panes}
+            activePaneId={workspace.activePaneId} onChange={applyWorkspaceLayout}
+            onActivate={(id,index)=>setPaneIndex(index)}
+            renderPane={(pane,i,controls) => (
             <section
               className={"pane" + (paneIndex === i ? " focused" : "")}
-              key={i}
+              key={pane.id}
               onFocus={() => setPaneIndex(i)}
               onMouseDown={() => setPaneIndex(i)}
             >
@@ -1944,47 +2017,12 @@ export default function App() {
                     onClick={() => setLeft(true)}
                   />
                 )}
-                <div className="tab-list">
+                <div className="tab-list" {...controls.getTabStripProps()}>
                   {pane.tabs.map((p) => (
                     <button
                       key={p}
                       className={"tab" + (p === pane.active ? " selected" : "")}
-                      draggable
-                      onDragStart={(e) =>
-                        e.dataTransfer.setData(
-                          "application/x-vaultdesk-tab",
-                          JSON.stringify({ path: p, from: i }),
-                        )
-                      }
-                      onDragOver={(e) => {
-                        if (
-                          e.dataTransfer.types.includes(
-                            "application/x-vaultdesk-tab",
-                          )
-                        )
-                          e.preventDefault();
-                      }}
-                      onDrop={(e) => {
-                        if (
-                          !e.dataTransfer.types.includes(
-                            "application/x-vaultdesk-tab",
-                          )
-                        )
-                          return;
-                        e.preventDefault();
-                        const item = JSON.parse(
-                          e.dataTransfer.getData("application/x-vaultdesk-tab"),
-                        );
-                        setPanes((ps) =>
-                          moveTab(
-                            ps,
-                            item.from,
-                            item.path,
-                            i,
-                            pane.tabs.indexOf(p),
-                          ),
-                        );
-                      }}
+                      {...controls.getTabProps(p)}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         setDialog({ type: "tabmenu", path: p, pane: i });
@@ -2001,7 +2039,7 @@ export default function App() {
                         )}
                       </span>
                       <span>
-                        {p.startsWith("@localgraph:")
+                        {p.startsWith("@plugin-view:") ? <PluginViewTitle host={pluginHost} leafId={p.slice(13)}/> : p.startsWith("@empty:") ? "新标签页" : p.startsWith("@localgraph:")
                           ? "局部图谱"
                           : p === "@graph"
                             ? "关系图谱"
@@ -2032,7 +2070,9 @@ export default function App() {
                   label="新标签页"
                   onClick={() => setDialog({ type: "quick" })}
                 />
-                <IconButton icon={Columns2} label="切换分屏" onClick={split} />
+                <IconButton icon={Columns2} label="向右分屏" onClick={()=>split("vertical",undefined,pane.id)} />
+                <IconButton icon={Columns2} label="向下分屏" onClick={()=>split("horizontal",undefined,pane.id)} />
+                {panes.length>1 && <IconButton icon={X} label="关闭分屏" onClick={controls.closePane} />}
                 {!right && (
                   <IconButton
                     icon={PanelRightClose}
@@ -2064,7 +2104,7 @@ export default function App() {
                 </div>
                 <div className="breadcrumbs">
                   {pane.active?.startsWith("@")
-                    ? "知识网络"
+                    ? pane.active.startsWith("@plugin-view:") ? <PluginViewTitle host={pluginHost} leafId={pane.active.slice(13)}/> : pane.active.startsWith("@empty:") ? "新标签页" : pane.active.startsWith("@web:") ? pane.active.slice(5) : "知识网络"
                     : pane.active?.split("/").map((s, k, a) => (
                         <React.Fragment key={k}>
                           <span className={k === a.length - 1 ? "last" : ""}>
@@ -2080,20 +2120,20 @@ export default function App() {
                       <IconButton
                         icon={Code2}
                         label="源码模式"
-                        active={mode === "source"}
-                        onClick={() => setMode("source")}
+                        active={getPaneTabState(pane,pane.active,defaultMode).mode === "source"}
+                        onClick={() => setMode("source",i)}
                       />
                       <IconButton
                         icon={SquarePen}
                         label="实时预览"
-                        active={mode === "live"}
-                        onClick={() => setMode("live")}
+                        active={getPaneTabState(pane,pane.active,defaultMode).mode === "live"}
+                        onClick={() => setMode("live",i)}
                       />
                       <IconButton
                         icon={BookOpen}
                         label="阅读模式"
-                        active={mode === "reading"}
-                        onClick={() => setMode("reading")}
+                        active={getPaneTabState(pane,pane.active,defaultMode).mode === "reading"}
+                        onClick={() => setMode("reading",i)}
                       />
                     </>
                   )}
@@ -2109,8 +2149,11 @@ export default function App() {
               </div>
               <div className="document-view">{paneContent(pane, i)}</div>
             </section>
-          ))}
+          )}/>
         </main>
+        <WorkspaceSidebar side="right" width={sidebars.right.width} collapsed={!right}
+          onResize={width=>setSidebars(v=>({...v,right:{...v.right,width}}))}
+          onCollapsedChange={collapsed=>setRight(!collapsed)}>
         {right && (
           <aside className="right-sidebar">
             <div className="sidebar-tabs">
@@ -2155,7 +2198,7 @@ export default function App() {
                       key={i}
                       style={{ paddingLeft: 16 + (h.level - 1) * 12 }}
                       onClick={() =>
-                        editors.current[paneIndex]?.scrollToHeading?.(
+                        editorFor(paneIndex)?.scrollToHeading?.(
                           h.heading || h.text,
                         )
                       }
@@ -2251,7 +2294,7 @@ export default function App() {
                 <FootnotesPanel
                   text={content}
                   onNavigate={(id) =>
-                    editors.current[paneIndex]?.scrollToFootnote?.(id)
+                    editorFor(paneIndex)?.scrollToFootnote?.(id)
                   }
                 />
               )}
@@ -2268,6 +2311,7 @@ export default function App() {
             </div>
           </aside>
         )}
+        </WorkspaceSidebar>
       </div>
       <footer className="statusbar">
         <span>
@@ -2276,6 +2320,7 @@ export default function App() {
         <span>
           {active?.endsWith(".md") ? `${backlinks.length} 个反向链接` : ""}
         </span>
+        <PluginStatusBar host={pluginHost}/>
         <span className="status-spacer" />
         <span className={saveState === "保存冲突" ? "error-text" : ""}>
           {saveState === "已保存" && <Check size={12} />} {saveState}
@@ -2416,13 +2461,7 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                setPanes((ps) =>
-                  [...ps, { tabs: [dialog.path], active: dialog.path }].slice(
-                    0,
-                    4,
-                  ),
-                );
-                setPaneIndex(Math.min(panes.length, 3));
+                split("vertical",dialog.path);
                 close();
               }}
             >
@@ -2520,7 +2559,7 @@ export default function App() {
                 title: title(active),
                 timeFormat: settings.timeFormat,
               });
-              editors.current[paneIndex]?.insert?.(text);
+              try { editorFor(paneIndex)?.insert?.(text); } catch(error) { notify(error.message); }
             } else open(item);
           }}
         />
@@ -2769,43 +2808,41 @@ export default function App() {
           <WorkspacesPanel
             current={{ panes, mode }}
             workspaces={workspaces}
-            onSave={(name) =>
-              setWorkspaces((w) => ({
-                ...w,
-                [name]: {
-                  panes,
-                  paneIndex,
-                  left,
-                  right,
-                  leftTab,
-                  rightTab,
-                  splitDirection,
-                  mode,
-                },
-              }))
-            }
-            onDelete={(name) =>
-              setWorkspaces((w) =>
-                Object.fromEntries(
-                  Object.entries(w).filter(([key]) => key !== name),
-                ),
-              )
-            }
+            onSave={async (name) => {
+              await pluginHost?.captureViewStates?.();
+              await flush();
+              const current=liveWorkspace.current;
+              const savedPanes=current.panes.map(pane=>{
+                const api=editors.current[pane.id];
+                if(!api || api.path!==pane.active || api.getStatus?.().pending)return pane;
+                return{...pane,tabStates:{...pane.tabStates,[pane.active]:api.getViewState()}};
+              });
+              const saved={...current,panes:savedPanes};
+              delete saved.workspaces; delete saved.plugins; delete saved.cloud;
+              const next={...current.workspaces,[name]:saved};
+              await bridge.saveWorkspace({...current,workspaces:next});
+              setWorkspaces(next);
+            }}
+            onDelete={async (name) => {
+              const current=liveWorkspace.current;
+              const next=Object.fromEntries(Object.entries(current.workspaces||{}).filter(([key])=>key!==name));
+              await bridge.saveWorkspace({...current,workspaces:next});
+              setWorkspaces(next);
+            }}
             onLoad={async (name) => {
               await flush();
               const w = workspaces[name];
               if (!w) return;
-              const ps = restorePanes(w.panes, allPaths);
-              setPanes(ps.length ? ps : [{ tabs: [], active: null }]);
-              setPaneIndex(
-                Math.min(w.paneIndex || 0, Math.max(0, ps.length - 1)),
-              );
+              const ps = normalizeWorkspaceLayout(w,allPaths).panes;
+              applyWorkspaceLayout({...w,panes:ps.length ? ps : [{tabs:[],active:null}]});
               setLeft(w.left !== false);
               setRight(w.right !== false);
               setLeftTab(w.leftTab || "files");
               setRightTab(w.rightTab || "outline");
               setSplitDirection(w.splitDirection || "horizontal");
-              setMode(w.mode || "live");
+              setDefaultMode(w.mode || "live");
+              setViewStateRevision(value=>value+1);
+              await pluginHost?.syncWorkspace?.({forceState:true});
             }}
           />
         </Dialog>
@@ -3672,7 +3709,7 @@ function SettingsDialog({
           {tab === "about" && (
             <>
               <div className="about-mark">◇</div>
-              <h3>VaultDesk 0.2.0</h3>
+              <h3>VaultDesk 0.3.0</h3>
               <p>
                 基于 Obsidian 1.13.7 的 REA 行为研究构建的独立本地笔记应用。
               </p>

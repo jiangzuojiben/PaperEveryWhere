@@ -151,3 +151,56 @@ Wikilink 不做 URL 百分号解码，Markdown URL 做解码；实际查找统�
 独立 `editor-composition` 浏览器在同一组件内设置 A、B 两个分别绑定路径的回调，实际发送合成 compositionstart、输入「中」、请求 B，200 ms 后仍显示 A 且 `compositionStarted=true`。随后发送 compositionend 并输入尾字符「文」，观察到两次写回均指向 A：A 为 `A original中文`，B 仍为 `B original`。完成切换后输入 `!` 只修改 B；撤销 B、返回 A 后中文仍在，A 的 undoDepth 为 1，再撤销恢复 A 原文。另一个探针在组合期间先请求 B 再请求 C＋阅读模式，结束后进入 C 的阅读内容，没有落到过期请求 B。
 
 结果：[editor-composition-path-results.txt](../output/playwright/editor-composition-path-results.txt)。这是 DOM 组合事件与浏览器 Unicode 插入探针，不是真实 Windows IME 候选／预编辑提交验收。未运行构建，独立浏览器已关闭。
+
+## 第三轮：Editor 插件桥接与组合输入收尾
+
+2026-10-23，使用独立 `editor-round3` Playwright CLI 浏览器与 `127.0.0.1:5181` 单组件夹具；未接管正式 Electron 或主验收浏览器，未改动磁盘知识库。
+
+本轮修复三处可复现风险：公开写入接口仅检查 CM 只读状态，可能在 A→B 等待组合结束时改动 A；立即启用只读会使 CM 丢弃已开始的组合输入尾部；外部受控 value 更新进入本地撤销栈，可能与用户输入合并。修复后程序化写入同时检查显示路径、请求路径、模式、只读与组合状态；已有组合先收尾，再启用只读；外部 value 使用 `addToHistory(false)` 并隔离相邻历史。
+
+### Chromium 组合管线验证
+
+通过 CDP `Input.imeSetComposition` 创建预编辑，再用 `Input.insertText` 提交。此方式实际经过 Chromium 的组合与 DOM 输入管线，`compositionstart`、`compositionupdate` 和 `insertCompositionText` 的 beforeinput/input 事件为 `isTrusted=true`；本次观察的 compositionend 由 CM 补发，为 `isTrusted=false`。没有打开 Windows 输入法候选窗口，不能据此声称完成系统输入法验收。
+
+| 场景 | 实际结果 |
+| --- | --- |
+| 组合期间开启只读 | `A originalzhong` 预编辑中请求只读，API 返回 `EDITOR_COMPOSING`；CM 暂时仍可接收组合，提交后为 `A original中`，随后 CM 只读为 true、compositionStarted 为 false。 |
+| 组合期间切文件与模式 | A 的 `wen` 预编辑中请求 B＋阅读，API 返回 `EDITOR_PENDING`；提交 `文` 只写 A，A 最终为 `A original中文`，B 仍为 `B original`，最后显示 B 的阅读视图。 |
+| 视图事件身份 | 组合期间的选区事件标记 A；B 显示后才发布 B 的视图状态。 |
+| 外部更新与撤销 | 本地 `a→ab` 后外部 value 更新为 `abc`，undoDepth 仍为 1；撤销只去掉本地 b，留下 `ac`。 |
+
+### 插件与布局接口
+
+`onReady` 新增动态 `path`、`getStatus()`，以及 `getValue/setValue/getLine/setLine/lineCount/lastLine/getRange/getSelection/listSelections/getCursor/setCursor/setSelection/setSelections/replaceSelection/replaceRange/offsetToPos/posToOffset/transaction/getScrollInfo/scrollTo/scrollIntoView/focus/hasFocus/undo/redo`。没有暴露 CM 实例或任意扩展注入。
+
+位置是零基 `{line,ch}`，ch 按 UTF-16 计数；越界位置显式报错。transaction 的 changes 使用修改前坐标，selection/selections 使用修改后坐标；支持 `{from,to?}` 和 `{anchor,head}` 两种选区形状。`replaceSelection` 与 changes 同时提供会报错。合法事务一次 dispatch、单步撤销；无效事务先验证完再拒绝，不产生部分写入。`setValue` 规范化 CRLF 为 LF。
+
+写入、选区修改与撤销在只读、组合、路径／模式切换和阅读态显式抛出带 code 的错误。阅读态 focus/scroll 操作可见 article。异步插件可传 `expectedPath/expectedValue` 做 CAS；这是显式可选保护，插件宿主仍须把 facade 绑定到 leaf 与文件路径，不能把动态 adapter 当作永久绑定的文件句柄。
+
+布局使用 `getViewState/setViewState` 与 `initialViewState/onViewStateChange(state,path)`。内部状态含 path、mode、offset 格式 cursor/selections/mainIndex、像素 scroll top/left、readingScrollTop。它不是 Obsidian ephemeral scroll 的源代码行比例格式。每次激活文档只恢复一次初始状态；选区、文本与滚动按 80 ms 节流发布，切换前先发布旧文件状态。
+
+180 行夹具 `Long#A.md` 实测恢复初始选区 280→300、scrollTop=900；移动到 offset 744、scrollTop=1300 后，父组件重渲染并传不同 initialViewState 不覆盖当前状态；切到 B 再返回，offset 744 与 scrollTop=1300 均恢复。字面 `#` 路径完整保留。
+
+可选 `processMarkdown(container,{path,text,lineOffset})` 在 hydrate 后处理阅读全文与 Live Preview 富文本 widget，支持返回异步 cleanup。浏览器观察表格／callout 的 lineOffset 分别为 4／8，阅读为 0；切换模式时每个已创建处理器 cleanup 恰好一次。普通源码围栏仍是源码显示，不会当作富文本 widget 调用后处理。纯测试另覆盖处理器 Promise 在 widget 销毁之后才完成的情况，cleanup 仍执行一次。
+
+阅读态另用 160 段夹具恢复 readingScrollTop=650，focus 实际落在可见 article；滚到 920 后父 render 不覆盖。检查发现切到源码时原实现会输出 readingScrollTop=0，现按文件缓存阅读滚动，修复后 reading→source→reading 往返均保留 920。最后刷新浏览器加载最终代码后，CAS 事务将 `final` 改为 `final bridge`，单步 undo 恢复 `final`。
+
+结果文件：[editor-round3-results.txt](../output/playwright/editor-round3-results.txt)、[阅读状态结果](../output/playwright/editor-round3-reading-state-results.txt)。期间有一次 CM `Measure loop restarted more than 5 times` 警告，未观察到上述文本、选区或滚动断言失败；未据此声明所有动态区块布局稳定。最终针对性验证执行 editor-api、editor-helpers、link-index、compatibility 测试，31 项通过；此轮未运行 build 或写入 dist。独立浏览器和临时 Vite 服务均已关闭。
+
+### 原生重启发现的滚动偏移及后续修复
+
+桌面流程后来发现单组件夹具没有覆盖的恢复时机问题：同窗口尺寸重启后，磁盘保存 A 的 scrollTop=777.333，而真实 CM scroller 为 1207.333；B 保存 546，实际为 661.333，阅读 C 的 650 正确。额外等待 1500 ms 后偏移仍在。原失败记录保留在 `output/layout-1792750896651-7313f0/report.json` 和 `output/layout-1792750941329-4fd354/report.json`，没有将其计为通过。
+
+原因是 CM 在初次恢复之后重新测量换行高度，再根据旧高度图进行滚动锚点补偿。新增 `app/editor-scroll.mjs` 在公开 `requestMeasure` 的完整测量轮次结束后恢复保存的像素值；位置与几何连续稳定后才发布视图状态。恢复有次数上限；用户滚动／点击／键入、文档或选区变化、路径／模式变化会取消旧任务，避免迟到的恢复覆盖用户动作。
+
+额外复核发现初始阅读模式隐藏 CM 时，源码 scrollTop 会被 DOM 钳到 0。现在保存独立源码滚动缓存，隐藏阶段不把零值写回；切回源码可见后再执行测量恢复。源码与阅读位置分别保留。
+
+桌面脚本使用真实 Electron 42.11.9／Chromium 148.0.7778.280，独立测试知识库与 userData，通过无 HMR 的 loopback Vite 加载本轮源码；没有放宽正式 CSP。编辑器专项实际跑完 6 项：[原生报告](../output/layout-1792752028046-f0aa3a/report.json)。结果包括：字面路径 `A#literal.md` 的 offset 2000 插字正确；保存后重启 offset 2013 插字正确；A source scrollTop 恢复 777.3333129882812，B live 恢复其保存值 500，C reading 为 650；C 隐藏源码缓存仍为 650，切到源码实际恢复 650。分栏尺寸变化和标签往返也在这次专项中验证。
+
+该报告的 `editorOnly=true`，明确排除了新增命名布局的保存／恢复分支；不能因为其中沿用的检查名称含 named layouts 就宣称该分支通过。完整桌面流程另发现命名布局 UI 已保存但磁盘没有记录的问题，交由 App 持久化修复与完整集成验收处理。这里的原生结果也不是 Windows 输入法候选窗口验收或打包产物验收。
+
+同文件命名布局恢复新增显式 `viewStateRevision` prop。只有 revision 变化才重新应用最新 initialViewState；普通父组件状态更新不重设选区，恢复不清空 undo。独立浏览器实测：普通 initialViewState 对象变化后仍为光标 11／scrollTop=400；revision 增量后恢复 120／900，undoDepth 保持 1，undo 仍还原原文。Chromium composition 期间 revision 变化先等待 `中` 提交，再恢复 300／1000；切阅读的 revision 保留源码 950 与阅读 850，返回源码仍为 950。结果：[显式恢复探针](../output/playwright/editor-viewstate-revision-results.txt)。
+
+App 接线与命名布局持久化修复后，同一真实 Electron 完整源码脚本最终 8 项全部通过：[完整原生报告](../output/layout-1792752144785-56c80e/report.json)。包含隐藏源码 650 回归、同 pane／同 path 命名布局恢复 scrollTop=777.333、真实插字 offset=2013，以及重启与空分组流程。无 HMR 临时 Vite 服务在此后关闭；最终 dist 构建与重测由集成流程执行。
+
+增加滚动锚点补偿、用户取消、文档／选区取消与隐藏视图的针对性测试后，editor-scroll、editor-api、editor-helpers、link-index、compatibility 共 35 项通过。此后续修复仍未运行 build 或写入 dist。

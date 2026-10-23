@@ -113,7 +113,7 @@ test('Node imports and unsupported APIs fail explicitly without leaving a plugin
     await assert.rejects(f.host.enable({ id: 'unsupported' }, `require(${JSON.stringify(name)});`), error => error instanceof PluginCompatibilityError && error.message.includes('Only require("obsidian")'));
     assert.deepEqual(f.host.list(), []);
   }
-  await assert.rejects(f.host.enable({ id: 'unsupported' }, `const { requestUrl } = require('obsidian');`), /obsidian.requestUrl/);
+  await assert.rejects(f.host.enable({ id: 'unsupported' }, `const { FileSystemAdapter } = require('obsidian');`), /obsidian.FileSystemAdapter/);
   await assert.rejects(f.host.enable({ id: 'unsupported' }, `const {Plugin}=require('obsidian');module.exports=class extends Plugin{onload(){this.app.workspace.registerHoverLinkSource();}};`), /app.workspace.registerHoverLinkSource/);
   assert.equal(Object.keys(globalThis).filter(key => key.startsWith('__vaultdesk_plugin_')).length, 0);
 });
@@ -261,7 +261,7 @@ test('Modal, settings controls and MarkdownView use the supported DOM subset and
     }};`);
   assert.equal(globalThis.__markdownView.file.path, 'Home.md');
   assert.match(globalThis.__markdownView.getViewData(), /^# Home/);
-  assert.throws(() => globalThis.__markdownView.editor, /no CodeMirror/);
+  assert.throws(() => globalThis.__markdownView.editor, error => error.code === 'PLUGIN_API_UNSUPPORTED' && error.api === 'MarkdownView.editor');
   await f.commands.get('interface:settings').callback(); assert.equal(document.body.children.length, 1);
   globalThis.__settingInput.value = 'Changed'; globalThis.__settingInput.dispatchEvent(new Event('input'));
   assert.equal(globalThis.__settingValue, 'Changed');

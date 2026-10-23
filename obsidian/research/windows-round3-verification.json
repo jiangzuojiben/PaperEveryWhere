@@ -1,0 +1,347 @@
+{
+  "schema": "vaultdesk-windows-round3-verification-v1",
+  "date": "2026-10-23",
+  "branch": "feature/obsidian-selfhosted",
+  "version": "0.3.1",
+  "completeObsidianParity": false,
+  "reference": {
+    "core": "1.13.7",
+    "electron": "39.8.3",
+    "rea": "6.7.0",
+    "originalCloudUsed": false
+  },
+  "runtime": {
+    "electron": "42.11.9",
+    "testNode": "24.13.1"
+  },
+  "checks": {
+    "node": {
+      "tests": 309,
+      "passed": 309,
+      "failed": 0,
+      "skipped": 0,
+      "realCloudIntegration": true
+    },
+    "cloudPytest": {
+      "tests": 19,
+      "subtests": 23,
+      "warning": "Upstream Starlette TestClient deprecation"
+    },
+    "samePlugin": {
+      "cases": 10,
+      "assertions": 29,
+      "fixtureHashesEqual": true,
+      "independentMethod": "packaged app UI import, explicit enable and command palette"
+    },
+    "packagedLayout": {
+      "version": "0.3.1",
+      "launches": 4,
+      "checks": 8,
+      "workspaceWrites": 32,
+      "allWritesSucceeded": true,
+      "pendingAtEnd": 0
+    },
+    "pluginHttp": {
+      "checks": 4,
+      "loopback": true,
+      "productionNetwork": false
+    },
+    "customCloneAndReload": {
+      "cloneIndependent": true,
+      "savedValues": [
+        3,
+        4
+      ],
+      "rendererReloadAndExplicitEnable": true,
+      "processRestartClaim": false
+    },
+    "nativeOsIme": {
+      "status": "pending-physical-keyboard-validation",
+      "userReportedChinesePinyinEnabled": true,
+      "physicalCompletionReplyReceived": false,
+      "observedCompositionEvents": 0,
+      "automatedKeysProduced": "insertText only",
+      "cdpCompositionIsNotOsIme": true
+    }
+  },
+  "reports": [
+    {
+      "path": "research/windows-round3-differential.json",
+      "sha256": "cf88ce3cfd478fe51cbca8f75b3fae0b8fc9a5e25d5dcad60d16b771fb12a3e6"
+    },
+    {
+      "path": "research/windows-round3-layout-verification.json",
+      "sha256": "2ec9c62a6600b7cc555e49f84e1e19e469d5407fcc967b7c6093a1417cb68ed9"
+    },
+    {
+      "path": "research/windows-round3-plugin-clone-cold-ui.json",
+      "sha256": "2b9c7ed62035eb4a73b01ad2c0937df0c83322377ac4ab62d1d3e333ce9f4ce8"
+    },
+    {
+      "path": "research/windows-round3-plugin-layout-http-ui.json",
+      "sha256": "07e14ee105dd897dbf398238a7b481a69a38c6bdd9c4c3eb77288c1cc937dbca"
+    },
+    {
+      "path": "research/windows-round3-plugin-ui.json",
+      "sha256": "15580bb578a68cf8f4a69b47eb189821d94de9cc7723e5e9d2e16026c2022cc2"
+    },
+    {
+      "path": "research/windows-round3-reference.json",
+      "sha256": "2bcc725ad0ef67b78f001d600a3484966db0ac1f67b6d92d0bfac6da7f6edf1f"
+    },
+    {
+      "path": "research/windows-round3-wrapper-reference.json",
+      "sha256": "b1450327e687a5fecd393ed5efabc6dadca8a56151ca04591e7f2ccda59f4b85"
+    }
+  ],
+  "logs": [
+    {
+      "path": "output/windows-round3-tests.log",
+      "sha256": "eae01d2f99b05bee552e71f2c15ec82a2f6abd8383bd4350d01e1dc555ea2c57"
+    },
+    {
+      "path": "output/windows-round3-cloud-tests.log",
+      "sha256": "c63932da69224be6464537990d7307153603cf439929541b13f81ed27f9572b8"
+    },
+    {
+      "path": "output/windows-round3-build.log",
+      "sha256": "2f00dd7349f08f5d700803199748afd731363306e364c31954513fe0b8c9f899"
+    }
+  ],
+  "sources": [
+    {
+      "path": "app/App.jsx",
+      "sha256": "51112d848c8a3bea4f238393ffc560040c2004570d49a431045b0154f5e8c3ee"
+    },
+    {
+      "path": "app/editor-api.mjs",
+      "sha256": "b188d40945a73e77bc0eee1978d4e8f373f879785dc9285aa084b06bf9602c76"
+    },
+    {
+      "path": "app/editor-helpers.mjs",
+      "sha256": "0b6ac75bde078c8afbd3bb8fe4b0b3188f902809b72faec49dc605c95ce1b3dc"
+    },
+    {
+      "path": "app/editor-scroll.mjs",
+      "sha256": "eafe2bebad742e29ca9ca120cc0130704b671a0893eb30b90de72911174b34f7"
+    },
+    {
+      "path": "app/editor.css",
+      "sha256": "02947c37e1a87b645cd9a709371f7f3896bfae41214654bcf477d1d5e3f6524d"
+    },
+    {
+      "path": "app/Editor.jsx",
+      "sha256": "4f178c06287344cd4f74d1a75e5014289a70a547f18e6000b9ff22ec6d9096e0"
+    },
+    {
+      "path": "app/extensions.js",
+      "sha256": "27e537f301c3053e4a30531f3d43244c36ce31f4741b7ce2f9d16a200c0671a0"
+    },
+    {
+      "path": "app/FileTree.jsx",
+      "sha256": "f1ef1a280467f94242e953cac5f0f697673e9ec1d3f804bedfbd29df0d477007"
+    },
+    {
+      "path": "app/HistoryPanel.jsx",
+      "sha256": "a55f8da9841280ec6a7442b2dd5d429dcbf5b89b5ff348d813d161eec8efc618"
+    },
+    {
+      "path": "app/main.jsx",
+      "sha256": "af1ce2891d360e378bea4316965eb1d22e3561bbd84664b4cc8a445b484310b1"
+    },
+    {
+      "path": "app/markdown.js",
+      "sha256": "d05be43ed1dcb76d12ab343e98ec628ba496f569aad9cd9b8a1ee6fdc7e90c21"
+    },
+    {
+      "path": "app/pdf-model.mjs",
+      "sha256": "df27bc86251674a43db096e061a209aec70601d88c456362eed6015b304d3fd5"
+    },
+    {
+      "path": "app/pdf.css",
+      "sha256": "e3115cf8086a72e458a77e8d35230cf398665f5f9601111ceacc2f2665789184"
+    },
+    {
+      "path": "app/PdfViewer.jsx",
+      "sha256": "ac05ef33ddc13ed0223e10a947c9a9f3ef32195d44995e8c823ae4cdda5671fc"
+    },
+    {
+      "path": "app/plugin-editor.mjs",
+      "sha256": "9a8d99a0e5dce1f7c88a0422ec459b8fe3de6d4d82826cd6401bf913b860a8d1"
+    },
+    {
+      "path": "app/plugin-files.mjs",
+      "sha256": "eab1675dfe4f14a990ab17b8e4b24f19e3820e90a79c8ac7e012ab8bdb47024c"
+    },
+    {
+      "path": "app/plugin-icon-data.mjs",
+      "sha256": "e9117ce7efcba6833129bb7e0e3a318583e29a8299cbbe055d7d2ac8b2b9bfd7"
+    },
+    {
+      "path": "app/plugin-icons.mjs",
+      "sha256": "697c2aad92c66af66c21c02291d579c86a31e9209cb4b60c3e625df96fd3fada"
+    },
+    {
+      "path": "app/plugin-markdown.mjs",
+      "sha256": "00a1bc666342c6c142127c37f7d5135ed833e998f2f8fce92af5b866bbe21115"
+    },
+    {
+      "path": "app/plugin-surfaces.css",
+      "sha256": "761b1d4e1cf8adc3b5db509adfa14fe3a31d50be910a64f22b6d9c7f30fd93e1"
+    },
+    {
+      "path": "app/plugin-views.mjs",
+      "sha256": "74a502f54d55352ab75bd98b913600f505128b1116e3b1434791fadc6d7108b2"
+    },
+    {
+      "path": "app/plugin-workspace.mjs",
+      "sha256": "83fe8d12197a42d42ac68e10cdf8f43667e9a2e347f9e8a022aa243b6ad5d08c"
+    },
+    {
+      "path": "app/PluginsPanel.jsx",
+      "sha256": "79c751f972343279858e2d4d6f06f7bdb7a9125b66d68d46041c22f320cbf781"
+    },
+    {
+      "path": "app/PluginSurfaces.jsx",
+      "sha256": "08354b19a86a5e30d590faca73cdf2ecb5a9a70d9e72e9f93a8f3bda10f5b4b3"
+    },
+    {
+      "path": "app/preview.js",
+      "sha256": "34575db87a037bcec9d85cc343ce6be11be648f04cf01c476dbc7520f465a880"
+    },
+    {
+      "path": "app/style.css",
+      "sha256": "4dde06e85b34b5161900bae014634cd19e042d018b87a6bfc0df8ab0f47c76cb"
+    },
+    {
+      "path": "app/utilities.css",
+      "sha256": "81064d482ed1cacd44a92352b510193ca3f6d14d8099512702d928a6e37b014f"
+    },
+    {
+      "path": "app/Utilities.jsx",
+      "sha256": "e129843a5f728af04d25af59be9ee16557aed13e963c38235a0c3fc64da8b4c7"
+    },
+    {
+      "path": "app/views-model.mjs",
+      "sha256": "d0ba5538ad34beaaf5b57a3ff49274c7dad0a9675b0911bba3d62224547d36aa"
+    },
+    {
+      "path": "app/views.css",
+      "sha256": "6219a364822c8616d18bf46f0d31bf2cb1c0b65ac51159221f315fca041d91c7"
+    },
+    {
+      "path": "app/Views.jsx",
+      "sha256": "21fe5e6a64807d476e12233bbf3aea50512d28d763c7afb0cb28fc561f5ad82f"
+    },
+    {
+      "path": "app/webviewer.css",
+      "sha256": "ab16ef35aeaf418d66c45c1680e6cac5900e1f8b3f9bec4fafcf113092999cf6"
+    },
+    {
+      "path": "app/WebViewer.jsx",
+      "sha256": "65c8f0c5dadbc22c4005fea966866de2adf8690abca31c178760a13fb6d962e0"
+    },
+    {
+      "path": "app/windows-extras.css",
+      "sha256": "c638fd2d88b699684c4a95638629cbd4033e8c9f23b9e4fe832a9fabf94503c5"
+    },
+    {
+      "path": "app/WindowsExtras.jsx",
+      "sha256": "836922c72f6d2301d83ddd65888f58b63ef39a49478dd7620752b8ae3b8c4bec"
+    },
+    {
+      "path": "app/workspace-layout.css",
+      "sha256": "33b3f3e532529d51ebd1e2d0bbbe128e8453f66454b3e8d68ef0376d885a13c9"
+    },
+    {
+      "path": "app/WorkspaceLayout.jsx",
+      "sha256": "f15ef3fba04c1fc8f7cb0e49caa63e9fc383a299418bfcc248f678ab1526c750"
+    },
+    {
+      "path": "core/composer.mjs",
+      "sha256": "902b8a5dbc64d9951929b58ce8279581967af05606c9b55a91eea12074810f25"
+    },
+    {
+      "path": "core/dates.mjs",
+      "sha256": "d6b713bf42dad2b9f5c900dc4349f7fb72dd8385a430b82ace1ef0aa7aff5f78"
+    },
+    {
+      "path": "core/file-types.mjs",
+      "sha256": "2525ecf0ebe2a6463d11a47321e1d0a081c4e33cc9bda3a4417843899d3f2c80"
+    },
+    {
+      "path": "core/vault.mjs",
+      "sha256": "3c4a213138461c0b262d9aef2aefd592794e8e84fec401551d9e9fc5dfd90ea2"
+    },
+    {
+      "path": "core/windows-extras.mjs",
+      "sha256": "7d4615f2eee8702e1f58634affd2c04f0ea816c76e77dafc7ad3453ab1d260d0"
+    },
+    {
+      "path": "core/workspace.mjs",
+      "sha256": "0f23fe7c0b14bd841ef1545b1931f9b8095f100a30ef93c52b5dfea5fadaf32d"
+    },
+    {
+      "path": "desktop/attachments.mjs",
+      "sha256": "566b080678aa84f7e2aad3451a5121128a5ec5e8e52d93a3b87cf570e86998a7"
+    },
+    {
+      "path": "desktop/cli.mjs",
+      "sha256": "cd8a0dbdc85cfa96ce2eb5062fd2e195c54eae9db68c35b6c7f3efbc89675ec0"
+    },
+    {
+      "path": "desktop/host.cjs",
+      "sha256": "0889b333ff25cf44fe789061bf2ec97f7932045c1f0361ea68e04588653dadab"
+    },
+    {
+      "path": "desktop/main.cjs",
+      "sha256": "52b596b5b941d7b883a5f01bc1dfd9df152f2f9ad74b32b05e0d3f55d717d48e"
+    },
+    {
+      "path": "desktop/plugin-request.mjs",
+      "sha256": "1245818029e36e9f8b96a1e7eb8723a831a60c4cb22e813cd1feab47fb0d2eb7"
+    },
+    {
+      "path": "desktop/preload.cjs",
+      "sha256": "ba767e9ff0572e6401a400ed03d36fd3dcc9aed25022472d5b8dc0c335ffe603"
+    },
+    {
+      "path": "desktop/sync.mjs",
+      "sha256": "9c3eb17d487e08e98f603f41a0cfd3cddbc2ac1cdfb495c161edee47fb250fff"
+    },
+    {
+      "path": "desktop/uri.mjs",
+      "sha256": "1d487f2c70272e65eb94c23a92bb11c716550261178ac9eecacbbf030682070b"
+    },
+    {
+      "path": "desktop/vault-store.mjs",
+      "sha256": "93688b8dd54ce046d6e26bcab8f11195f179f99228a766d1fdf30da1a90c7ef1"
+    },
+    {
+      "path": "desktop/web-viewer.cjs",
+      "sha256": "d4d2fc576f4994b382458af07dcb9053ba2ea4d9ee8d33921b3a572b0793c583"
+    },
+    {
+      "path": "desktop/window-registry.mjs",
+      "sha256": "4bb435419b0982d31e839464fdcb1127d19c3e38b606e3ca8777ade52bc383e4"
+    }
+  ],
+  "package": {
+    "directory": "release/VaultDesk-0.3.1-Windows-x64",
+    "zip": "release/VaultDesk-0.3.1-Windows-x64.zip",
+    "zipChecksumFile": "release/VaultDesk-0.3.1-Windows-x64.zip.sha256",
+    "codeSigned": false,
+    "renderer": {
+      "packaged": true,
+      "version": "0.3.1",
+      "bundles": [
+        {
+          "path": "dist/assets/index-CWnBlYx-.js",
+          "sha256": "d47b19986bd14bace1441fce3267eec7c3230d813e6d6de263b482801167277d"
+        }
+      ]
+    },
+    "integrityFile": "integrity.json",
+    "manifest": "package-manifest.json"
+  }
+}

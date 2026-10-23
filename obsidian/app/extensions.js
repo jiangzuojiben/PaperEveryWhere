@@ -1,4 +1,8 @@
 import { parseMarkdown, getReferences, resolveLink, normalizePath as normalizeCorePath } from '../core/vault.mjs';
+import { decodeBinary, encodeBinary, toArrayBuffer, transformFrontmatter } from './plugin-files.mjs';
+import { createPluginViews } from './plugin-views.mjs';
+import { createPluginMarkdown } from './plugin-markdown.mjs';
+import { getPluginIcon, setPluginIcon } from './plugin-icons.mjs';
 
 export class PluginCompatibilityError extends Error {
   constructor(api, detail = 'This API is outside the supported plugin subset.') {
@@ -35,16 +39,22 @@ function decorate(element) {
   if (!element || element.__vaultdeskDecorated) return element;
   Object.defineProperty(element, '__vaultdeskDecorated', { value: true });
   element.empty = () => { element.replaceChildren(); return element; };
+  element.detach = () => element.remove();
   element.setText = text => { element.textContent = String(text ?? ''); return element; };
   element.addClass = (...names) => { element.classList.add(...names); return element; };
   element.removeClass = (...names) => { element.classList.remove(...names); return element; };
   element.toggleClass = (name, enabled) => { element.classList.toggle(name, enabled); return element; };
+  element.hasClass = name => element.classList.contains(name);
   element.setAttr = (name, value) => { value == null ? element.removeAttribute(name) : element.setAttribute(name, String(value)); return element; };
+  element.setAttrs = values => { for (const [name, value] of Object.entries(values)) element.setAttr(name, value); return element; };
+  element.find = selector => decorate(element.querySelector(selector));
+  element.findAll = selector => [...element.querySelectorAll(selector)].map(decorate);
   element.createEl = (tag, options = {}, callback) => {
     const child = createElement(tag);
     if (typeof options === 'string') options = { cls: options };
     if (options.cls) child.className = Array.isArray(options.cls) ? options.cls.join(' ') : options.cls;
     if (options.text != null) child.textContent = String(options.text);
+    for (const key of ['title', 'href', 'type', 'value']) if (options[key] != null) child.setAttribute(key, String(options[key]));
     for (const [key, value] of Object.entries(options.attr || {})) child.setAttribute(key, String(value));
     element.appendChild(child); callback?.(child); return child;
   };
@@ -118,7 +128,7 @@ function normalizeRecords(input) {
   return map;
 }
 const fingerprint = record => record ? JSON.stringify([!!record.isDirectory, record.content ?? null, record.mtime ?? null, record.size ?? null]) : null;
-const equivalent = (left, right) => left == null || right == null ? left === right : !!left.isDirectory === !!right.isDirectory && left.content === right.content;
+const equivalent = (left, right) => left == null || right == null ? left === right : !!left.isDirectory === !!right.isDirectory && left.content === right.content && (left.isDirectory || typeof left.content === 'string' || (left.mtime === right.mtime && left.size === right.size));
 async function importBlobModule(code) {
   if (!globalThis.Blob || typeof URL.createObjectURL !== 'function') unsupported('Plugin loader', 'Blob modules are unavailable in this renderer.');
   const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
@@ -127,12 +137,24 @@ async function importBlobModule(code) {
 }
 
 /** Explicitly enabled, trusted CommonJS plugins; this is not a security sandbox. */
-export function createExtensionHost({ bridge, getFiles = () => [], getActivePath = () => null, openFile = () => {}, notice = () => {}, addCommand, removeCommand, onEvent, moduleLoader = importBlobModule } = {}) {
+export function createExtensionHost({ bridge, getFiles = () => [], getActivePath = () => null, getEditor, workspaceAdapter, openFile = () => {}, notice = () => {}, addCommand, removeCommand, onEvent, moduleLoader = importBlobModule, markdownRenderer } = {}) {
   if (!bridge) throw new TypeError('A vault bridge is required');
   const records = new Map(), commands = new Map(), objects = new Map(), overlays = new Map(), processQueues = new Map(), memoryData = new Map();
+  const ribbon = new Map(), statusBar = new Map(), uiListeners = new Set(), surfaces = new Map();
+  let uiRevision = 0, markdownRevision = 0, uiSnapshot = Object.freeze({ revision: 0, markdownRevision: 0, ribbon: [], statusBar: [], views: [] }), viewRuntime, markdownRuntime;
   const hasExternalEvents = typeof onEvent === 'function';
   let disposed = false, disposePromise, revision = 0, sourceRecords = normalizeRecords(getFiles()), latestRecords = sourceRecords, vaultIdentity = 'session', pulling = false, pullAgain = false;
   const report = error => { try { notice(`插件错误：${error?.message || error}`); } catch { /* A notice must not prevent cleanup. */ } };
+  function publishUI() {
+    let views = [];
+    try { views = viewRuntime?.uiViews() || []; } catch (error) { report(error); }
+    uiSnapshot = Object.freeze({ revision: ++uiRevision, markdownRevision, ribbon: [...ribbon.values()], statusBar: [...statusBar.values()], views });
+    for (const listener of uiListeners) { try { listener(); } catch (error) { report(error); } }
+  }
+  function mountSurface(name, element) {
+    const target = [...(surfaces.get(name) || [])].find(value => typeof value?.appendChild === 'function');
+    target?.appendChild(element);
+  }
   const vaultEvents = new Emitter(report), workspaceEvents = new Emitter(report), metadataEvents = new Emitter(report);
   const root = new TFolder(''); objects.set('', root);
   function currentRecords() {
@@ -214,7 +236,9 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
     if (!event || disposed) return;
     const name = event.name || event.type;
     const emitter = event.scope === 'vault' ? vaultEvents : event.scope === 'metadata' ? metadataEvents : workspaceEvents;
-    emitter.emit(name, ...(event.args || (event.path ? [fileAt(event.path)] : [])));
+    if (emitter === workspaceEvents && name === 'editor-change') emitter.emit(name, { leafId: event.leafId, path: event.path });
+    else emitter.emit(name, ...(event.args || (event.path ? [fileAt(event.path)] : [])));
+    if (emitter === workspaceEvents && ['layout-change', 'active-leaf-change', 'file-open'].includes(name)) void viewRuntime?.syncWorkspace();
   }) : null;
   index();
 
@@ -240,15 +264,38 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
     return result;
   }
   function needBridge(name) { if (typeof bridge[name] !== 'function') unsupported(`app.vault.${name}`, 'The current bridge does not implement this operation.'); return bridge[name].bind(bridge); }
-  async function mutateRecord(filePath, content, createOnly = false) {
+  async function mutateRecord(filePath, content, createOnly = false, ensureActive = () => {}) {
     assertText(content, 'File content');
     const before = new Map(index());
     let result;
     if (createOnly) result = await needBridge('create')(filePath, content);
-    else { const read = await needBridge('read')(filePath); result = await needBridge('write')(filePath, content, read?.mtime); }
+    else { const read = await needBridge('read')(filePath); ensureActive(); result = await needBridge('write')(filePath, content, read?.mtime, read?.version); }
+    ensureActive();
     const after = new Map(before); after.set(filePath, { path: filePath, content, mtime: result?.mtime || Date.now(), size: new TextEncoder().encode(content).length });
     for (let parent = dirname(filePath); parent; parent = dirname(parent)) if (!after.has(parent)) after.set(parent, { path: parent, isDirectory: true });
     applyChanges(before, after); return objects.get(filePath);
+  }
+  async function binaryRead(filePath, ensureActive) {
+    const result = await needBridge('readBinary')(filePath); ensureActive();
+    const bytes = result instanceof ArrayBuffer || ArrayBuffer.isView(result) ? toArrayBuffer(result) : decodeBinary(result?.base64);
+    return { bytes, mtime: result?.mtime, version: result?.version };
+  }
+  async function binaryWrite(filePath, data, createOnly, ensureActive, read) {
+    const bytes = toArrayBuffer(data), encoded = encodeBinary(bytes);
+    if (!createOnly && !read) read = await binaryRead(filePath, ensureActive);
+    ensureActive(); const before = new Map(index());
+    const result = createOnly ? await needBridge('writeBinary')(filePath, encoded) : await needBridge('modifyBinary')(filePath, encoded, read?.mtime, read?.version);
+    ensureActive();
+    const after = new Map(before); after.set(filePath, { path: filePath, mtime: result?.mtime || Date.now(), size: bytes.byteLength });
+    for (let parent = dirname(filePath); parent; parent = dirname(parent)) if (!after.has(parent)) after.set(parent, { path: parent, isDirectory: true });
+    applyChanges(before, after); return objects.get(filePath);
+  }
+  function assertWriteOptions(options) { if (options && Object.keys(options).length) unsupported('Vault write options', 'Custom ctime/mtime overrides are not implemented.'); }
+  function queueProcess(path, callback) {
+    const previous = processQueues.get(path) || Promise.resolve();
+    const operation = previous.catch(() => {}).then(callback);
+    processQueues.set(path, operation); operation.finally(() => { if (processQueues.get(path) === operation) processQueues.delete(path); }).catch(() => {});
+    return operation;
   }
   async function renameFile(file, newPath, managed) {
     const oldPath = filePathOf(file, true), next = safePath(newPath), before = new Map(index());
@@ -267,6 +314,10 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
     if (result?.warnings?.length) throw new Error('Rename completed with reference update errors: ' + result.warnings.map(item => item.message || item.path).join('; '));
   }
 
+  viewRuntime = createPluginViews({ Component, createElement, decorate, strictApi, unsupported, workspaceAdapter, getActivePath, openFile, getEditor,
+    fileAt, filePathOf, currentRecords, report, changed: publishUI, emit: (...args) => workspaceEvents.emit(...args), hasExternalEvents });
+  markdownRuntime = createPluginMarkdown({ Component, createElement, decorate, getSource: path => currentRecords().get(path)?.content, report, changed: () => { markdownRevision++; publishUI(); } });
+
   function createPluginApi(record) {
     const ensureActive = () => { if (disposed || record.state === 'disabled' || record.cancelled) throw new Error(`Plugin ${record.manifest.id} is disabled`); };
     const track = callback => { const cleanup = once(callback); record.cleanups.push(cleanup); return cleanup; };
@@ -282,21 +333,38 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       getAbstractFileByPath: filePath => { ensureActive(); return fileAt(filePath); },
       getFileByPath: filePath => { const file = vault.getAbstractFileByPath(filePath); return file instanceof TFile ? file : null; },
       getFolderByPath: filePath => { const file = vault.getAbstractFileByPath(filePath); return file instanceof TFolder ? file : null; },
-      read: async file => { ensureActive(); const result = await needBridge('read')(filePathOf(file)); return typeof result === 'string' ? result : result.content; },
+      read: async file => { ensureActive(); const result = await needBridge('read')(filePathOf(file)); ensureActive(); return typeof result === 'string' ? result : result.content; },
       cachedRead: async file => { ensureActive(); const p = filePathOf(file), value = currentRecords().get(p)?.content; return typeof value === 'string' ? value : vault.read(file); },
-      create: async (filePath, data) => { ensureActive(); return mutateRecord(safePath(filePath), data, true); },
+      create: async (filePath, data, options) => { ensureActive(); assertWriteOptions(options); return mutateRecord(safePath(filePath), data, true, ensureActive); },
       createFolder: async filePath => { ensureActive(); const p = safePath(filePath), before = new Map(index()); await needBridge('mkdir')(p); const after = new Map(before); after.set(p, { path: p, isDirectory: true }); for (let parent = dirname(p); parent; parent = dirname(parent)) if (!after.has(parent)) after.set(parent, { path: parent, isDirectory: true }); applyChanges(before, after); return objects.get(p); },
-      modify: async (file, data) => { ensureActive(); await mutateRecord(filePathOf(file), data); },
+      modify: async (file, data, options) => { ensureActive(); assertWriteOptions(options); await mutateRecord(filePathOf(file), data, false, ensureActive); },
       process: (file, callback) => {
-        ensureActive(); const p = filePathOf(file), previous = processQueues.get(p) || Promise.resolve();
-        const operation = previous.catch(() => {}).then(async () => { ensureActive(); const read = await needBridge('read')(p); const original = typeof read === 'string' ? read : read.content; const value = callback(original); assertText(value, 'process callback result'); const before = new Map(index()); const result = await needBridge('write')(p, value, read?.mtime); const after = new Map(before); after.set(p, { ...before.get(p), path: p, content: value, mtime: result?.mtime || Date.now() }); applyChanges(before, after); return value; });
-        processQueues.set(p, operation); operation.finally(() => { if (processQueues.get(p) === operation) processQueues.delete(p); }).catch(() => {}); return operation;
+        ensureActive(); const p = filePathOf(file);
+        if (typeof callback !== 'function') throw new TypeError('process requires a synchronous callback');
+        return queueProcess(p, async () => { ensureActive(); const read = await needBridge('read')(p); ensureActive(); const original = typeof read === 'string' ? read : read.content; const value = callback(original); if (value?.then) Promise.resolve(value).catch(() => {}); assertText(value, 'process callback result'); const before = new Map(index()); const result = await needBridge('write')(p, value, read?.mtime, read?.version); ensureActive(); const after = new Map(before); after.set(p, { ...before.get(p), path: p, content: value, mtime: result?.mtime || Date.now() }); applyChanges(before, after); return value; });
       },
       append: async (file, data) => { assertText(data, 'Appended data'); await vault.process(file, previous => previous + data); },
+      readBinary: async file => { ensureActive(); return (await binaryRead(filePathOf(file), ensureActive)).bytes; },
+      createBinary: async (filePath, data, options) => { ensureActive(); assertWriteOptions(options); return binaryWrite(safePath(filePath), data, true, ensureActive); },
+      modifyBinary: async (file, data, options) => { ensureActive(); assertWriteOptions(options); await binaryWrite(filePathOf(file), data, false, ensureActive); },
+      appendBinary: (file, data, options) => {
+        ensureActive(); assertWriteOptions(options); const p = filePathOf(file), suffix = new Uint8Array(toArrayBuffer(data));
+        return queueProcess(p, async () => { ensureActive(); const read = await binaryRead(p, ensureActive), original = new Uint8Array(read.bytes), combined = new Uint8Array(original.length + suffix.length); combined.set(original); combined.set(suffix, original.length); await binaryWrite(p, combined, false, ensureActive, read); });
+      },
+      copy: async (file, next) => { ensureActive(); const source = await binaryRead(filePathOf(file), ensureActive); return binaryWrite(safePath(next), source.bytes, true, ensureActive); },
       rename: async (file, next) => { ensureActive(); await renameFile(file, next, false); },
       trash: async (file, system = false) => { ensureActive(); if (system) unsupported('app.vault.trash(system=true)', 'Only the application recycle bin is supported.'); const p = filePathOf(file, true), before = new Map(index()); await needBridge('trash')(p); const after = new Map([...before].filter(([name]) => name !== p && !name.startsWith(p + '/'))); applyChanges(before, after); },
       delete: () => unsupported('app.vault.delete', 'Permanent deletion is unavailable. Use app.vault.trash(file, false).'),
-      adapter: strictApi('app.vault.adapter', { exists: async p => !!vault.getAbstractFileByPath(p), read: async p => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.read(file); } }),
+      adapter: strictApi('app.vault.adapter', {
+        exists: async p => !!vault.getAbstractFileByPath(p),
+        read: async p => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.read(file); },
+        readBinary: async p => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.readBinary(file); },
+        write: async (p, data, options) => { const file = vault.getFileByPath(p); return file ? vault.modify(file, data, options) : vault.create(p, data, options); },
+        writeBinary: async (p, data, options) => { const file = vault.getFileByPath(p); return file ? vault.modifyBinary(file, data, options) : vault.createBinary(p, data, options); },
+        append: async (p, data) => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.append(file, data); },
+        appendBinary: async (p, data) => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.appendBinary(file, data); },
+        mkdir: async p => vault.createFolder(p),
+      }),
     });
     const metadataCache = strictApi('app.metadataCache', { ...events(metadataEvents),
       getFileCache: file => { ensureActive(); return cacheFor(filePathOf(file)); }, getCache: p => { ensureActive(); return cacheFor(safePath(p)); },
@@ -332,32 +400,70 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       constructor(value = app, plugin) { this.app = value; this.plugin = plugin; this.containerEl = createElement('div'); }
       display() {} hide() { this.containerEl.empty(); }
     }
-    class ItemView extends Component {
-      constructor(leaf) { super(); this.leaf = leaf; this.app = app; this.containerEl = leaf?.containerEl || createElement('div'); this.contentEl = this.containerEl.createDiv('view-content'); }
-      getViewType() { return 'plugin-view'; } getDisplayText() { return record.manifest.name; } getIcon() { return 'document'; }
-      async onOpen() {} async onClose() {}
-    }
-    class MarkdownView extends ItemView {
-      get file() { const p = getActivePath(); return p ? fileAt(p) : null; }
-      get editor() { return unsupported('MarkdownView.editor', 'The host has no CodeMirror editor adapter yet. Use vault.read/modify for file operations.'); }
-      getViewType() { return 'markdown'; } getDisplayText() { return this.file?.basename || ''; }
-      getViewData() { return this.file ? currentRecords().get(this.file.path)?.content || '' : ''; }
-    }
-    let activeView, leafContainer;
-    track(() => leafContainer?.remove());
-    const leaf = strictApi('WorkspaceLeaf', { get containerEl() { return leafContainer ||= createElement('div'); }, get view() { return activeView ||= new MarkdownView(leaf); },
-      openFile: async (file, state) => { ensureActive(); await openFile(filePathOf(file), state); if (!hasExternalEvents) workspaceEvents.emit('file-open', file); },
-      getViewState: () => ({ type: 'markdown', state: { file: getActivePath() } }),
-    });
-    const workspace = strictApi('app.workspace', { ...events(workspaceEvents), get activeLeaf() { ensureActive(); return getActivePath() ? leaf : null; },
-      getActiveFile: () => { ensureActive(); const p = getActivePath(); const file = p ? fileAt(p) : null; return file instanceof TFile ? file : null; },
-      getActiveViewOfType: View => { ensureActive(); if (!getActivePath()?.toLowerCase().endsWith('.md')) return null; const view = leaf.view; return view instanceof View ? view : null; },
-      getLeaf: newLeaf => { ensureActive(); if (newLeaf) unsupported('app.workspace.getLeaf(newLeaf)', 'Plugin-created panes are not supported. Use the active leaf or a Modal.'); return leaf; },
-      openLinkText: async (link, sourcePath = '', newLeaf = false, state) => { ensureActive(); if (newLeaf) unsupported('app.workspace.openLinkText(newLeaf)', 'Only the active pane is supported.'); const target = metadataCache.getFirstLinkpathDest(link, sourcePath); if (!target) throw new Error('Unresolved link: ' + link); const subpath = String(link).includes('#') ? '#' + String(link).split('#').slice(1).join('#') : ''; await openFile(target.path, { ...state, subpath }); if (!hasExternalEvents) workspaceEvents.emit('file-open', target); },
+    const workspaceListeners = events(workspaceEvents);
+    let views;
+    views = viewRuntime.forPlugin({ record, ensureActive, track, getApp: () => app, metadataCache, events: {
+      ...workspaceListeners,
+      on(name, callback, context) {
+        if (name !== 'editor-change' && name !== 'active-leaf-change') return workspaceListeners.on(name, callback, context);
+        const ref = subscribe(workspaceEvents, name, value => {
+          if (name === 'active-leaf-change') return callback.call(context, views.workspace.activeLeaf);
+          const editorContext = views.editorContext(value?.leafId, value?.path);
+          if (editorContext) return callback.call(context, editorContext.editor, editorContext.view);
+        });
+        ref.originalCallback = callback; return ref;
+      },
       onLayoutReady: callback => { ensureActive(); let live = true; const off = track(() => { live = false; }); queueMicrotask(() => { if (live && !record.cancelled && !disposed) try { Promise.resolve(callback()).catch(report); } catch (error) { report(error); } }); return { off }; },
-    });
+    } });
+    const { workspace, View, ItemView, MarkdownView, WorkspaceLeaf, Editor } = views;
+    const markdown = markdownRuntime.forPlugin({ record, ensureActive, track });
+    class MarkdownRenderer {
+      static async render(value, source, element, sourcePath = '', component) {
+        ensureActive();
+        if (value !== app) throw new TypeError('MarkdownRenderer requires this plugin app');
+        if (!element?.replaceChildren || !component?.register) throw new TypeError('MarkdownRenderer requires a DOM container and a Component');
+        assertText(source, 'Markdown source');
+        let closed = false, cleanup;
+        const stop = once(async () => { closed = true; await cleanup?.(); });
+        track(stop); component.register(stop);
+        try {
+          if (markdownRenderer) await markdownRenderer(source, element, sourcePath);
+          else {
+            const renderer = await import('./markdown.js');
+            ensureActive(); if (closed) return;
+            element.innerHTML = renderer.renderMarkdown(source, { path: sourcePath, files: Object.fromEntries(currentRecords()) });
+            await renderer.hydrateMarkdown(element, { resolveAsset: bridge.assetUrl ? path => bridge.assetUrl(path) : undefined });
+          }
+          ensureActive(); if (closed) return;
+          cleanup = await markdownRuntime.process(element, { path: sourcePath, text: source, virtual: true });
+          if (closed || record.cancelled || disposed) await cleanup();
+        } catch (error) { await stop(); throw error; }
+      }
+      static renderMarkdown(source, element, sourcePath, component) { return this.render(app, source, element, sourcePath, component); }
+    }
+    function requestUrl(input) {
+      ensureActive();
+      const options = typeof input === 'string' ? { url: input } : { ...input };
+      if (typeof options.url !== 'string') throw new TypeError('requestUrl requires a URL');
+      const params = { url: options.url, method: options.method, headers: options.headers, contentType: options.contentType };
+      if (options.body != null) {
+        if (typeof options.body === 'string') { params.body = options.body; params.bodyEncoding = 'utf8'; }
+        else { params.body = encodeBinary(options.body); params.bodyEncoding = 'base64'; }
+      }
+      const response = Promise.resolve().then(() => { ensureActive(); return needBridge('requestUrl')(params); }).then(result => {
+        ensureActive();
+        if (options.throw !== false && result.status >= 400) { const error = new Error(`Request failed, status ${result.status}`); error.status = result.status; throw error; }
+        const arrayBuffer = decodeBinary(result.bodyBase64);
+        return { status: result.status, headers: result.headers, arrayBuffer, text: result.text, get json() { return JSON.parse(result.text); } };
+      });
+      for (const key of ['arrayBuffer', 'text', 'json']) Object.defineProperty(response, key, { get: () => response.then(result => result[key]) });
+      return response;
+    }
     app = strictApi('app', { vault, workspace, metadataCache,
-      fileManager: strictApi('app.fileManager', { renameFile: async (file, next) => { ensureActive(); await renameFile(file, next, true); } }),
+      fileManager: strictApi('app.fileManager', {
+        renameFile: async (file, next) => { ensureActive(); await renameFile(file, next, true); },
+        processFrontMatter: async (file, callback, options) => { ensureActive(); assertWriteOptions(options); await vault.process(file, source => transformFrontmatter(source, callback)); },
+      }),
       commands: strictApi('app.commands', { executeCommandById: id => { ensureActive(); const command = commands.get(id); if (!command) return false; command.callback(); return true; } }),
     });
     class Plugin extends Component {
@@ -366,19 +472,27 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
         ensureActive();
         if (typeof addCommand !== 'function' || typeof removeCommand !== 'function') unsupported('Plugin.addCommand', 'Both addCommand and removeCommand host callbacks are required.');
         if (!command || typeof command.id !== 'string' || !command.id.trim()) throw new TypeError('Command id is required');
-        if (command.editorCallback || command.editorCheckCallback) unsupported('Plugin.addCommand(editorCallback)', 'The editor adapter is not available.');
-        if (typeof command.callback !== 'function' && typeof command.checkCallback !== 'function') throw new TypeError('Command needs callback or checkCallback');
+        if (![command.callback, command.checkCallback, command.editorCallback, command.editorCheckCallback].some(value => typeof value === 'function')) throw new TypeError('Command needs a callback');
         const id = `${record.manifest.id}:${command.id}`;
         if (commands.has(id)) throw new Error('Command already registered: ' + id);
-        const wrapped = { ...command, id, name: command.name || command.id, callback: () => {
-          if (record.state !== 'enabled' || record.cancelled || disposed) return;
-          try { if (command.checkCallback) return Promise.resolve(command.checkCallback(false)).catch(report); return Promise.resolve(command.callback()).catch(report); } catch (error) { report(error); }
-        } };
-        if (command.checkCallback) wrapped.checkCallback = checking => record.state === 'enabled' && !record.cancelled && !disposed && command.checkCallback(checking);
-        commands.set(id, wrapped);
+        const { callback, checkCallback, editorCallback, editorCheckCallback } = command;
+        const invoke = checking => {
+          if (record.state !== 'enabled' || record.cancelled || disposed) return false;
+          if (typeof checkCallback === 'function') return checkCallback(checking);
+          if (typeof editorCheckCallback === 'function' || typeof editorCallback === 'function') {
+            const context = views.activeEditorContext(); if (!context) return false;
+            if (typeof editorCheckCallback === 'function') return editorCheckCallback(checking, context.editor, context.view);
+            if (!checking) editorCallback(context.editor, context.view); return true;
+          }
+          if (!checking) return callback(); return true;
+        };
+        command.id = id; command.name = `${record.manifest.name}: ${command.name || id.slice(record.manifest.id.length + 1)}`;
+        command.callback = () => { try { return Promise.resolve(invoke(false)).catch(report); } catch (error) { report(error); } };
+        if (checkCallback || editorCallback || editorCheckCallback) command.checkCallback = checking => { try { return invoke(checking); } catch (error) { report(error); return false; } };
+        commands.set(id, command);
         const cleanup = once(() => { commands.delete(id); removeCommand(id); }); track(cleanup); this.register(cleanup);
-        try { addCommand(wrapped); } catch (error) { cleanup(); throw error; }
-        return wrapped;
+        try { addCommand(command); } catch (error) { cleanup(); throw error; }
+        return command;
       }
       addSettingTab(tab) {
         ensureActive(); if (!(tab instanceof PluginSettingTab)) throw new TypeError('Expected PluginSettingTab');
@@ -388,16 +502,29 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       }
       async loadData() { if (record.state === 'disabled') throw new Error('Plugin has been unloaded'); const key = `vaultdesk:plugin-data:${encodeURIComponent(record.vaultIdentity)}:${record.manifest.id}`; const raw = globalThis.localStorage?.getItem(key) ?? memoryData.get(key); return raw ? JSON.parse(raw) : null; }
       async saveData(value) { if (record.state === 'disabled') throw new Error('Plugin has been unloaded'); const key = `vaultdesk:plugin-data:${encodeURIComponent(record.vaultIdentity)}:${record.manifest.id}`; const raw = JSON.stringify(value); if (raw === undefined) throw new TypeError('Plugin data must be JSON serializable'); if (globalThis.localStorage) localStorage.setItem(key, raw); else memoryData.set(key, raw); }
-      registerView() { return unsupported('Plugin.registerView', 'Docked custom views are not implemented. Modal is supported.'); }
-      registerMarkdownPostProcessor() { return unsupported('Plugin.registerMarkdownPostProcessor'); }
-      registerMarkdownCodeBlockProcessor() { return unsupported('Plugin.registerMarkdownCodeBlockProcessor'); }
+      registerView(type, creator) { return views.registerView(type, creator); }
+      registerMarkdownPostProcessor(callback, sortOrder) { return markdown.registerMarkdownPostProcessor(callback, sortOrder); }
+      registerMarkdownCodeBlockProcessor(language, callback, sortOrder) { return markdown.registerMarkdownCodeBlockProcessor(language, callback, sortOrder); }
       registerEditorExtension() { return unsupported('Plugin.registerEditorExtension'); }
-      addRibbonIcon() { return unsupported('Plugin.addRibbonIcon', 'Use addCommand to expose this action.'); }
-      addStatusBarItem() { return unsupported('Plugin.addStatusBarItem'); }
+      addRibbonIcon(icon, title, callback) {
+        ensureActive(); if (!surfaces.has('ribbon')) unsupported('Plugin.addRibbonIcon', 'The application has not mounted a plugin ribbon.');
+        if (typeof callback !== 'function') throw new TypeError('Ribbon callback must be a function');
+        const element = createElement('button'); element.className = 'plugin-ribbon-action'; element.type = 'button'; element.setAttribute('title', title); element.setAttribute('aria-label', title); element.setAttribute('data-icon', icon); setPluginIcon(element, icon); if (!element.children.length) element.setText(String(title || icon || '?').slice(0, 1));
+        this.registerDomEvent(element, 'click', event => { if (record.state === 'enabled' && !record.cancelled && !disposed) try { Promise.resolve(callback(event)).catch(report); } catch (error) { report(error); } });
+        const id = `${record.manifest.id}:ribbon:${++uiRevision}`; ribbon.set(id, { id, element }); mountSurface('ribbon', element); publishUI();
+        const cleanup = track(() => { ribbon.delete(id); element.remove(); publishUI(); }); this.register(cleanup); return element;
+      }
+      addStatusBarItem() {
+        ensureActive(); if (!surfaces.has('statusBar')) unsupported('Plugin.addStatusBarItem', 'The application has not mounted a plugin status bar.');
+        const element = createElement('div'); element.className = 'status-bar-item plugin-status-bar-item';
+        const id = `${record.manifest.id}:status:${++uiRevision}`; statusBar.set(id, { id, element }); mountSurface('statusBar', element); publishUI();
+        const cleanup = track(() => { statusBar.delete(id); element.remove(); publishUI(); }); this.register(cleanup); return element;
+      }
     }
     const userAgent = globalThis.navigator?.userAgent || '';
     const Platform = Object.freeze({ isDesktopApp: !!globalThis.window?.vaultdesk, isMobileApp: false, isDesktop: true, isMobile: false, isPhone: false, isTablet: false, isWin: /Windows/i.test(userAgent), isMacOS: /Macintosh/i.test(userAgent), isLinux: /Linux/i.test(userAgent), isAndroid: false, isIos: false, isSafari: /Safari/.test(userAgent) && !/Chrome|Chromium/.test(userAgent) });
-    const api = strictApi('obsidian', { Plugin, PluginSettingTab, Setting, Modal, Notice, ItemView, TFile, TFolder, Component, MarkdownView, Platform,
+    const api = strictApi('obsidian', { Plugin, PluginSettingTab, Setting, Modal, Notice, View, ItemView, WorkspaceLeaf, Editor, TFile, TFolder, Component, MarkdownView, MarkdownRenderChild: markdown.MarkdownRenderChild, MarkdownRenderer, Platform, apiVersion: '0.0.0', requestUrl, request: async input => (await requestUrl(input)).text,
+      getIcon: id => { ensureActive(); return getPluginIcon(id); }, setIcon: (element, id) => { ensureActive(); setPluginIcon(element, id); },
       normalizePath: value => { const normalized = normalizeCorePath(assertText(value, 'Path')); if (normalized == null) throw new Error('Path escapes the vault'); return normalized; },
     });
     return { app, api, require: name => { if (name !== 'obsidian') unsupported(`require(${JSON.stringify(name)})`, 'Only require("obsidian") is supported. Node/Electron and additional packages are not available.'); return api; } };
@@ -469,11 +596,28 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       const results = await Promise.allSettled([...records.keys()].map(disable));
       if (typeof bridgeUnsubscribe === 'function') bridgeUnsubscribe(); if (typeof externalUnsubscribe === 'function') externalUnsubscribe();
       vaultEvents.clear(); workspaceEvents.clear(); metadataEvents.clear();
+      await Promise.allSettled([viewRuntime.dispose(), markdownRuntime.dispose()]);
+      ribbon.clear(); statusBar.clear(); surfaces.clear(); publishUI(); uiListeners.clear();
       for (const result of results) if (result.status === 'rejected') report(result.reason);
     })();
     return disposePromise;
   }
-  return { enable, disable, list: () => [...records.values()].map(record => ({ ...record.manifest, state: record.state })), dispose };
+  return {
+    enable, disable, list: () => [...records.values()].map(record => ({ ...record.manifest, state: record.state })), dispose,
+    getUI: () => uiSnapshot,
+    subscribeUI: listener => { uiListeners.add(listener); return () => uiListeners.delete(listener); },
+    getViewElement: id => viewRuntime.getViewElement(id),
+    syncWorkspace: options => viewRuntime.syncWorkspace(options),
+    captureViewStates: () => viewRuntime.captureViewStates(),
+    processMarkdown: (container, options) => disposed ? Promise.resolve(() => {}) : markdownRuntime.process(container, options),
+    attachSurface: (name, element) => {
+      if (!['ribbon', 'statusBar'].includes(name)) throw new TypeError('Unknown plugin surface');
+      const set = surfaces.get(name) || new Set(), token = element || {}; set.add(token); surfaces.set(name, set);
+      const items = name === 'ribbon' ? ribbon : statusBar;
+      if (element) for (const item of items.values()) element.appendChild(item.element);
+      return once(() => { set.delete(token); if (!set.size) surfaces.delete(name); if (element) for (const item of items.values()) if (item.element.parentNode === element) { item.element.remove(); mountSurface(name, item.element); } });
+    },
+  };
 }
 
 export class Setting {

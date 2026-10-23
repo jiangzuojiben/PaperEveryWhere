@@ -1,0 +1,47 @@
+{
+  "scope": {
+    "url": "file:///C:/Users/[user]/Documents/%E6%96%87%E6%A1%A3%E8%B5%84%E6%96%99/PaperDesk/obsidian/release/VaultDesk-0.3.1-Windows-x64/resources/app/dist/index.html",
+    "vaultPath": "C:\\Users\\[user]\\Documents\\文档资料\\PaperDesk\\obsidian\\output\\desktop-ui-1792753241503\\vault"
+  },
+  "saved": {
+    "type": "synthetic-counter-view",
+    "state": {
+      "file": "Synthetic payload.md",
+      "count": 2
+    }
+  },
+  "afterRoundtrip": {
+    "type": "synthetic-counter-view",
+    "state": {
+      "file": "Synthetic payload.md",
+      "count": 2
+    }
+  },
+  "namedRestoreValue": 2,
+  "http": {
+    "checks": [
+      {
+        "name": "promise facade text/json/arrayBuffer",
+        "pass": true
+      },
+      {
+        "name": "request alias returns text",
+        "pass": true
+      },
+      {
+        "name": "throw false returns HTTP failure",
+        "pass": true
+      },
+      {
+        "name": "default HTTP failure rejects",
+        "pass": true
+      }
+    ]
+  },
+  "console": {
+    "errors": [],
+    "warnings": []
+  },
+  "verifiedAt": "2026-10-23T11:01:21.061Z",
+  "packagedVersion": "0.3.1"
+}

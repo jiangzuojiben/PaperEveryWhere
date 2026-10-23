@@ -1,0 +1,883 @@
+{
+  "schema": "vaultdesk-windows-round3-process-frontmatter-differential-v1",
+  "date": "2026-10-23T10:26:09.882Z",
+  "referenceEvidenceId": "ev_67753f60ec5be8252115093b5bc4465f766580061be17b416474f5f1c906d49e",
+  "originalReportSha256": "496c4de0e89d59328a1e39da00513ecfe548bd61d6af2e926f862cc6eb16dfc3",
+  "referenceAggregateSha256": "2bcc725ad0ef67b78f001d600a3484966db0ac1f67b6d92d0bfac6da7f6edf1f",
+  "implementationFile": "app/plugin-files.mjs",
+  "implementationSha256": "eab1675dfe4f14a990ab17b8e4b24f19e3820e90a79c8ac7e012ab8bdb47024c",
+  "invocation": "transformFrontmatter(input, callback); on rejection, retain unchanged input to model the file-write boundary",
+  "totals": {
+    "fixtures": 12,
+    "outcomeEqual": 11,
+    "byteEqual": 8,
+    "bothAccepted": 9,
+    "acceptedSemanticEqual": 8,
+    "outcomeAndSemanticEqual": 10,
+    "callbackValuesEqual": 10,
+    "callbackBothCalled": 10,
+    "callbackBothCalledValuesEqual": 9,
+    "implementationRejected": 3,
+    "referenceRejected": 2,
+    "implementationBodyPreserved": 12,
+    "referenceBodyPreserved": 11,
+    "outputOrOutcomeDifferences": 5
+  },
+  "results": [
+    {
+      "name": "existing-comments",
+      "operation": "update",
+      "input": "---\n# keep comment\ncount: 1 # count note\nuntouched: yes\nnested:\n  x: 1\n---\n\n# Body KEEP\n",
+      "expected": {
+        "text": "---\ncount: 2\nnested:\n  x: 1\nadded:\n  - a\n  - b\n---\n\n# Body KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1,
+          "untouched": "yes",
+          "nested": {
+            "x": 1
+          }
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "nested": {
+              "x": 1
+            },
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "\n# Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\n# keep comment\ncount: 2 # count note\nnested:\n  x: 1\nadded:\n  - a\n  - b\n---\n\n# Body KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1,
+          "untouched": "yes",
+          "nested": {
+            "x": 1
+          }
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "nested": {
+              "x": 1
+            },
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "\n# Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": false,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": 4,
+      "reason": "独立实现保留注释及未修改节点；原版重新序列化并丢掉注释。",
+      "inputSha256": "b4c2607d6d93f6bb9c54677330965d7cac8645e3dc809ae6cfabc8b70d2f7d03",
+      "expectedSha256": "0339bb64b6454a5a2f9c47c8eec2d5d4cddbef3e7aeb8b777a95ff5d4cdebf57",
+      "actualSha256": "8a48701f689363c33227f6c0691adba2c4730c583e4d226c6e0b6b04c14833e5"
+    },
+    {
+      "name": "crlf-bom",
+      "operation": "update",
+      "input": "﻿---\r\ncount: 1\r\nuntouched: yes\r\n---\r\nBody KEEP\r\n",
+      "expected": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\n﻿---\r\ncount: 1\r\nuntouched: yes\r\n---\r\nBody KEEP\r\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "﻿---\r\ncount: 1\r\nuntouched: yes\r\n---\r\nBody KEEP\r\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "﻿---\r\ncount: 2\r\nadded:\r\n  - a\r\n  - b\r\n---\r\nBody KEEP\r\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1,
+          "untouched": "yes"
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\r\n",
+          "bom": true,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": false,
+      "acceptedSemanticEqual": false,
+      "outcomeAndSemanticEqual": false,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": false,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": false,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": 0,
+      "reason": "独立实现识别并保留开头 BOM，更新现有 YAML；原版在 BOM 与旧内容之前追加另一块 YAML，callback 也因此收到空对象。",
+      "inputSha256": "87bc4ef38d07d61dab6504691c6e5e75f6022379f5d5bc0b65cfc09aa6d806a8",
+      "expectedSha256": "9d9499e4eb31cdd109d7b8e9296dcc8fadc10829abaffad6025827d5ba8c27ec",
+      "actualSha256": "396bc067a6af637f3e7149c0c81ebad2fb0294a22f3304abb2146c70579de31c"
+    },
+    {
+      "name": "crlf",
+      "operation": "update",
+      "input": "---\r\ncount: 1\r\nuntouched: yes\r\n---\r\nBody KEEP\r\n",
+      "expected": {
+        "text": "---\r\ncount: 2\nadded:\n  - a\n  - b\n---\r\nBody KEEP\r\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1,
+          "untouched": "yes"
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\r\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\r\ncount: 2\r\nadded:\r\n  - a\r\n  - b\r\n---\r\nBody KEEP\r\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1,
+          "untouched": "yes"
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\r\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": false,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": 13,
+      "reason": "独立实现使新 YAML 保持 CRLF；原版新 YAML 使用 LF，而围栏及正文仍为 CRLF。",
+      "inputSha256": "050d50963eedc933b8c13ad552794cee6102c5afcc9f83a3569af11327009707",
+      "expectedSha256": "e282f5b02ce7411eae4218221ff97d7a1a4f129c4ddc58a62d9af6ec93438d4d",
+      "actualSha256": "3d6983ee5c8bcb86ec9072ee5d92053d507d970cf3dd39ada9e75e1718cf9670"
+    },
+    {
+      "name": "no-frontmatter",
+      "operation": "update",
+      "input": "# Body KEEP\n\nNo YAML.\n",
+      "expected": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\n# Body KEEP\n\nNo YAML.\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "# Body KEEP\n\nNo YAML.\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\n# Body KEEP\n\nNo YAML.\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "# Body KEEP\n\nNo YAML.\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "05aa6e8a12283301568144d5bf18983e14cce702de76f8bcba42280d87aef424",
+      "expectedSha256": "10cf22880dbf2f12a28518aef2ccf3eb9377962e51b78ad2294b59b324018c21",
+      "actualSha256": "10cf22880dbf2f12a28518aef2ccf3eb9377962e51b78ad2294b59b324018c21"
+    },
+    {
+      "name": "empty-frontmatter",
+      "operation": "update",
+      "input": "---\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\nBody KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\nBody KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "76f91034a56bde8e9b492c0bce6dfbf4c2997898db89ad7dc3ae65700007f522",
+      "expectedSha256": "24b729ba24faa9c3e9a285e87aad89b5228dbe4abe1e28397427c6a0b799af73",
+      "actualSha256": "24b729ba24faa9c3e9a285e87aad89b5228dbe4abe1e28397427c6a0b799af73"
+    },
+    {
+      "name": "null-frontmatter",
+      "operation": "update",
+      "input": "---\nnull\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\nBody KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\ncount: 2\nadded:\n  - a\n  - b\n---\nBody KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {},
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 2,
+            "added": [
+              "a",
+              "b"
+            ]
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "808f61b7c30cce03df590ba57b4f3c22adc4cef05631def17c7bf6cd2e23bae7",
+      "expectedSha256": "24b729ba24faa9c3e9a285e87aad89b5228dbe4abe1e28397427c6a0b799af73",
+      "actualSha256": "24b729ba24faa9c3e9a285e87aad89b5228dbe4abe1e28397427c6a0b799af73"
+    },
+    {
+      "name": "array-frontmatter",
+      "operation": "update",
+      "input": "---\n- alpha\n- beta\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\n- alpha\n- beta\n---\nBody KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": [
+          "alpha",
+          "beta"
+        ],
+        "callbackType": {
+          "type": "object",
+          "array": true,
+          "prototype": "Array"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": [
+            "alpha",
+            "beta"
+          ],
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\n- alpha\n- beta\n---\nBody KEEP\n",
+        "rejected": true,
+        "error": {
+          "name": "Error",
+          "message": "Frontmatter must be a YAML mapping"
+        },
+        "callbackCalls": 0,
+        "callbackInput": null,
+        "callbackType": null,
+        "parts": {
+          "hasFrontmatter": true,
+          "values": [
+            "alpha",
+            "beta"
+          ],
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": false,
+      "byteEqual": true,
+      "acceptedSemanticEqual": null,
+      "outcomeAndSemanticEqual": false,
+      "callbackCallsEqual": false,
+      "callbackValuesEqual": false,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": true,
+      "firstDifferenceUtf16": null,
+      "reason": "独立实现拒绝非 mapping YAML，callback 未运行且输入不变；原版 callback 收到数组，新增命名属性未序列化。",
+      "inputSha256": "254a0817b56ca4c2e5d0ea29cac2e56c5c87cf1a136541c5df8945cb6a4adeca",
+      "expectedSha256": "254a0817b56ca4c2e5d0ea29cac2e56c5c87cf1a136541c5df8945cb6a4adeca",
+      "actualSha256": "254a0817b56ca4c2e5d0ea29cac2e56c5c87cf1a136541c5df8945cb6a4adeca"
+    },
+    {
+      "name": "invalid-yaml",
+      "operation": "update",
+      "input": "---\nitems: [oops\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\nitems: [oops\n---\nBody KEEP\n",
+        "outcome": {
+          "threw": {
+            "name": "YAMLParseError",
+            "message": "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1:\n\nitems: [oops\n\n^\n",
+            "status": null
+          }
+        },
+        "callbackCalls": 0,
+        "callbackInput": null,
+        "callbackType": null,
+        "parts": {
+          "hasFrontmatter": true,
+          "values": null,
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": [
+            {
+              "name": "YAMLParseError",
+              "code": "BAD_INDENT"
+            }
+          ]
+        }
+      },
+      "actual": {
+        "text": "---\nitems: [oops\n---\nBody KEEP\n",
+        "rejected": true,
+        "error": {
+          "name": "Error",
+          "message": "Invalid frontmatter: Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1:\n\nitems: [oops\n\n^\n"
+        },
+        "callbackCalls": 0,
+        "callbackInput": null,
+        "callbackType": null,
+        "parts": {
+          "hasFrontmatter": true,
+          "values": null,
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": [
+            {
+              "name": "YAMLParseError",
+              "code": "BAD_INDENT"
+            }
+          ]
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": null,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": true,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "f962862c3ff2359844d925de41ea3f0f255685677307e538834d98846caafc6d",
+      "expectedSha256": "f962862c3ff2359844d925de41ea3f0f255685677307e538834d98846caafc6d",
+      "actualSha256": "f962862c3ff2359844d925de41ea3f0f255685677307e538834d98846caafc6d"
+    },
+    {
+      "name": "callback-throws",
+      "operation": "throw",
+      "input": "---\ncount: 1\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\ncount: 1\n---\nBody KEEP\n",
+        "outcome": {
+          "threw": {
+            "name": "Error",
+            "message": "LAB CALLBACK FAILURE",
+            "status": null
+          }
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\ncount: 1\n---\nBody KEEP\n",
+        "rejected": true,
+        "error": {
+          "name": "Error",
+          "message": "LAB CALLBACK FAILURE"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": null,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": true,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "expectedSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "actualSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259"
+    },
+    {
+      "name": "noop-comments",
+      "operation": "noop",
+      "input": "---\n# Keep this\ncount: 1 # inline\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\ncount: 1\n---\nBody KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\n# Keep this\ncount: 1 # inline\n---\nBody KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": false,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": 4,
+      "reason": "独立实现对无改值 callback 保留原字节；原版仍重新序列化并移除注释。",
+      "inputSha256": "7a811987dc487195afdec21e69c3130b8ccc206060b8b294d594a5dceee45032",
+      "expectedSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "actualSha256": "7a811987dc487195afdec21e69c3130b8ccc206060b8b294d594a5dceee45032"
+    },
+    {
+      "name": "remove-all",
+      "operation": "delete",
+      "input": "---\ncount: 1\n---\nBody KEEP\n",
+      "expected": {
+        "text": "Body KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": false,
+          "values": null,
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "Body KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": false,
+          "values": null,
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "expectedSha256": "cda013a51a13cfeffa5d1949819798a3fc7c9deea50d069b260ae0b0d4b933a8",
+      "actualSha256": "cda013a51a13cfeffa5d1949819798a3fc7c9deea50d069b260ae0b0d4b933a8"
+    },
+    {
+      "name": "callback-return-ignored",
+      "operation": "return",
+      "input": "---\ncount: 1\n---\nBody KEEP\n",
+      "expected": {
+        "text": "---\ncount: 1\n---\nBody KEEP\n",
+        "outcome": {
+          "returnedType": "undefined"
+        },
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": "Object"
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "actual": {
+        "text": "---\ncount: 1\n---\nBody KEEP\n",
+        "rejected": false,
+        "error": null,
+        "callbackCalls": 1,
+        "callbackInput": {
+          "count": 1
+        },
+        "callbackType": {
+          "type": "object",
+          "array": false,
+          "prototype": null
+        },
+        "parts": {
+          "hasFrontmatter": true,
+          "values": {
+            "count": 1
+          },
+          "body": "Body KEEP\n",
+          "bom": false,
+          "parseErrors": []
+        }
+      },
+      "outcomeEqual": true,
+      "byteEqual": true,
+      "acceptedSemanticEqual": true,
+      "outcomeAndSemanticEqual": true,
+      "callbackCallsEqual": true,
+      "callbackValuesEqual": true,
+      "actualBodyPreserved": true,
+      "referenceBodyPreserved": true,
+      "rejectionLeavesInput": null,
+      "firstDifferenceUtf16": null,
+      "reason": null,
+      "inputSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "expectedSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259",
+      "actualSha256": "ad07bed3d5524b111afa938819f2f4924eb49e3d51db8072d00e34a3efabf259"
+    }
+  ],
+  "limitations": [
+    "Pure-function comparison using the 12 frozen original processFrontMatter inputs and callbacks, not a native plugin/UI or bridge/file-write test.",
+    "The tested helper returns text; this does not prove that the public asynchronous processFrontMatter wrapper resolves undefined, serializes concurrent operations, or writes files correctly.",
+    "Semantic comparison for jointly accepted cases compares parsed YAML values and the body after one initial frontmatter block; BOM is recognized and excluded from semantic body text.",
+    "Rejected cases compare acceptance/rejection and unchanged output, not exact exception class or text. Byte equality alone does not imply equivalent behavior when an array input is rejected.",
+    "The implementation passes a detached null-prototype mapping; callbackValuesEqual ignores the prototype difference and compares JSON values only.",
+    "All safety/preservation differences are recorded, not counted as complete Obsidian parity. Results apply only to the recorded implementation hash."
+  ]
+}
