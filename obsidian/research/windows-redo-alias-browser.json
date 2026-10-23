@@ -1,0 +1,741 @@
+{
+  "schema": "vaultdesk-editor-redo-alias-v1",
+  "capturedAt": "2026-10-23T11:55:25.4054160Z",
+  "method": "Isolated Playwright Chromium browser, real app/Editor.jsx via Vite, Win32 keyboard route",
+  "packaged": false,
+  "osIme": false,
+  "apiUndoRedoInvoked": false,
+  "physicalImeWindowTouched": false,
+  "sourceSha256": "2BB775794E14F59FF850AF8BCA20989DE6C074C0A86B1B8B96547E307CF528FE",
+  "reference": "research/windows-round3-hotkeys-static.json",
+  "notes": [
+    "Control+Shift+Z sends uppercase key Z and validates the explicit redo alias.",
+    "Control+Shift+z sends lowercase key z with shiftKey=true; current CM resolves it to undo. This driver spelling experiment is separately recorded.",
+    "Checkpoint count includes setup, recovery, mode history, document isolation and the lowercase-key experiment.",
+    "No direct api.undo()/api.redo() was used to prove shortcut behavior."
+  ],
+  "unitTests": {
+    "command": "node --test tests/editor-scroll.test.mjs tests/editor-api.test.mjs tests/editor-helpers.test.mjs",
+    "passed": 22,
+    "failed": 0
+  },
+  "result": {
+    "platform": "Win32",
+    "tests": [
+      {
+        "name": "source typed",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "source undo",
+        "actual": "# Redo alias\n\nStart",
+        "expected": "# Redo alias\n\nStart",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 0,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "source uppercase Shift+Z redo",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "source undo for CtrlY",
+        "actual": "# Redo alias\n\nStart",
+        "expected": "# Redo alias\n\nStart",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 0,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "source CtrlY redo",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "live preserves source undo",
+        "actual": "# Redo alias\n\nStart",
+        "expected": "# Redo alias\n\nStart",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 0,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "live preserves source redo alias",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "live typed",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "live undo",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "live uppercase Shift+Z redo",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "live undo for CtrlY",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "live CtrlY redo",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "live",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "reading keeps document",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "reading",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "source after reading undo",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "source after reading redo alias",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "lowercase experiment initial undo",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "lowercase CDP z experiment invokes undo",
+        "actual": "# Redo alias\n\nStart",
+        "expected": "# Redo alias\n\nStart",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 0,
+        "redoDepth": 2,
+        "b": "B untouched"
+      },
+      {
+        "name": "recover lowercase experiment source",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "recover lowercase experiment live",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "B has separate undo history",
+        "actual": "B untouched",
+        "expected": "B untouched",
+        "pass": true,
+        "path": "Redo-B.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 0,
+        "redoDepth": 0,
+        "b": "B untouched"
+      },
+      {
+        "name": "A undo retained after B",
+        "actual": "# Redo alias\n\nStart SOURCE",
+        "expected": "# Redo alias\n\nStart SOURCE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 1,
+        "redoDepth": 1,
+        "b": "B untouched"
+      },
+      {
+        "name": "A redo retained after B",
+        "actual": "# Redo alias\n\nStart SOURCE LIVE",
+        "expected": "# Redo alias\n\nStart SOURCE LIVE",
+        "pass": true,
+        "path": "Redo-A.md",
+        "mode": "source",
+        "sameView": true,
+        "undoDepth": 2,
+        "redoDepth": 0,
+        "b": "B untouched"
+      }
+    ],
+    "keys": [
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "live",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": true,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-B.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-B.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-B.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-B.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrlKey": true,
+        "shiftKey": false,
+        "mode": "source",
+        "path": "Redo-A.md"
+      }
+    ],
+    "summary": {
+      "pass": true,
+      "tests": 22,
+      "docs": {
+        "Redo-A.md": "# Redo alias\n\nStart SOURCE LIVE",
+        "Redo-B.md": "B untouched"
+      }
+    }
+  }
+}

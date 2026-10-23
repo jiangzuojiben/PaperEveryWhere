@@ -1,0 +1,36 @@
+{
+  "schema": "original-windows-redo-static-v1",
+  "method": "Read-only extraction from frozen original ASAR; no original application launch or runtime keyboard verification.",
+  "archive": "C:\\Users\\[user]\\AppData\\Roaming\\obsidian\\obsidian-1.13.7.asar",
+  "archiveSha256": "a52a7daf1e2460bae03de80f2816604bd16a56cd374fbe5ce8d1a9ef5604059d",
+  "member": "app.js",
+  "memberSha256": "8efbf581e259cabef4f9c9a34814cfe3c02863757377e56b3603933c50e89898",
+  "memberBytes": 3876459,
+  "matches": [
+    {
+      "phrase": "redo:()=>sB",
+      "utf16Offset": 249980,
+      "utf8ByteOffset": 254331,
+      "context": "t:()=>OH,insertNewlineKeepIndent:()=>LH,insertTab:()=>WH,invertedEffects:()=>eB,isolateHistory:()=>JN,lineComment:()=>WN,lineUncomment:()=>jN,moveLineDown:()=>xH,moveLineUp:()=>SH,redo:()=>sB,redoDepth:()=>pB,redoSelection:()=>cB,selectAll:()=>JV,selectCharBackward:()=>EV,selectCharBackwardLogical:()=>SV,selectCharForward:()=>CV,selectCharForwardLogical:()=>MV,selectCharLeft:()=>wV,selectCharRight:()=>kV,sel"
+    },
+    {
+      "phrase": "sB=",
+      "utf16Offset": 1874964,
+      "utf8ByteOffset": 1879623,
+      "context": "ction oB(e,t){return function(n){var i=n.state,r=n.dispatch;if(!t&&i.readOnly)return!1;var o=i.field(nB,!1);if(!o)return!1;var a=o.pop(e,i,t);return!!a&&(r(a),!0)}}var aB=oB(0,!1),sB=oB(1,!1),lB=oB(0,!0),cB=oB(1,!0);function uB(e){return function(t){var n=t.field(nB,!1);if(!n)return 0;var i=0==e?n.done:n.undone;return i.length-(i.length&&!i[0].changes?1:0)}}var hB=uB(0),pB=uB(1),dB=function(){functio"
+    },
+    {
+      "phrase": "var MB=[{key:\"Mod-z\"",
+      "utf16Offset": 1879504,
+      "utf8ByteOffset": 1884163,
+      "context": "startSelection,effects:r.effects,annotations:ZN.of({side:e,rest:a,selection:o}),filter:!1,userEvent:0==e?\"undo\":\"redo\",scrollIntoView:!0})}return null},e}();EB.empty=new EB(mB,mB);var MB=[{key:\"Mod-z\",run:aB,preventDefault:!0},{key:\"Mod-y\",mac:\"Mod-Shift-z\",run:sB,preventDefault:!0},{linux:\"Ctrl-Shift-z\",run:sB,preventDefault:!0},{key:\"Mod-u\",run:lB,preventDefault:!0},{key:\"Alt-u\",mac:\"Mod-Shift-u\",run:cB,preventDefa"
+    },
+    {
+      "phrase": "MB,!0),[{key:\"Mod-Shift-z\",run:sB,preventDefault:!0}]",
+      "utf16Offset": 2519008,
+      "utf8ByteOffset": 2523737,
+      "context": "rrowLeft\",run:PJ(!1),shift:PJ(!0),preventDefault:!0},{key:\"End\",run:IJ(!1),shift:IJ(!0),preventDefault:!0},{mac:\"Cmd-ArrowRight\",run:IJ(!1),shift:IJ(!0),preventDefault:!0}],sJ,!0),MB,!0),[{key:\"Mod-Shift-z\",run:sB,preventDefault:!0}],!1))),FJ.push(Uu.of((function(e,t){var n=e.state.doc.lineAt(t).text.match(/^\\s*/);return n?e.countColumn(n[0]):null}))),FJ.push(Jo.domEventHandlers({compositionend:function(e,t){setTimeout((function(){return t.dispatch("
+    }
+  ],
+  "conclusion": "Original historyKeymap includes Mod-y with mac override Mod-Shift-z; original editor extensions explicitly append Mod-Shift-z -> redo, in addition to that historyKeymap. On Windows this supports Ctrl+Y and Ctrl+Shift+Z bindings statically; actual runtime key dispatch was not tested in this probe."
+}

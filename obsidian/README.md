@@ -6,6 +6,8 @@ VaultDesk 是围绕本地 Markdown 知识库的独立实现，目标参考 Obsid
 
 Windows 桌面优先；React 编辑界面、纯 JavaScript 文档核心、Electron 宿主及 Python 服务分层，保留跨平台架构。当前 Windows x64 便携目录是交付目标，macOS/Linux 包和平台行为尚未验收。
 
+当前补丁版 **0.3.2** 增加 Ctrl+Shift+Z 重做绑定，全套 Node 回归 309/309、打包版快捷键及切页检查 16/16 通过。0.3.1 中实体键盘中文输入、撤销重做、提交后三模式与文件切换的证据见 [IME 追加验收](docs/windows-ime-verification.md)；候选取消和组合进行中切页仍未验证，0.3.2 未另做物理 IME 复验。
+
 0.3.1 的 REA 同脚本插件对照、309 项测试、递归布局及实际验收范围见 [Windows 第三轮验收](docs/windows-round3-verification.md)。第二轮历史结果保留在 [Windows 第二轮验收](docs/windows-round2-verification.md)。
 
 ## 从源码运行桌面版

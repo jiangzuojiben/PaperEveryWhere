@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Annotation, Compartment, EditorSelection, EditorState, StateEffect, StateField, Transaction} from '@codemirror/state';
 import {Decoration, EditorView, WidgetType, drawSelection, dropCursor, highlightActiveLine, highlightSpecialChars, keymap, rectangularSelection} from '@codemirror/view';
-import {defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory} from '@codemirror/commands';
+import {defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory, redo} from '@codemirror/commands';
 import {HighlightStyle, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, syntaxTree} from '@codemirror/language';
 import {tags} from '@lezer/highlight';
 import {markdown, markdownKeymap, markdownLanguage} from '@codemirror/lang-markdown';
@@ -330,7 +330,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
       editorTheme, EditorView.lineWrapping, EditorState.allowMultipleSelections.of(true), highlightSpecialChars(), history(), drawSelection(), dropCursor(), rectangularSelection(),
       indentOnInput(), markdown({base: markdownLanguage, extensions: [frontmatterExtension]}), syntaxHighlighting(markdownHighlight), foldGutter(), closeBrackets(), autocompletion({override: [completionSource(context)]}),
       search({top: true}), highlightSelectionMatches(),
-      keymap.of([{key: 'Mod-b', run: view => wrapSelection(view, '**')}, {key: 'Mod-i', run: view => wrapSelection(view, '*')}, {key: 'Mod-Shift-h', run: view => wrapSelection(view, '==')}, ...closeBracketsKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...completionKeymap, ...foldKeymap, indentWithTab]),
+      keymap.of([{key: 'Mod-Shift-z', run: redo, preventDefault: true}, {key: 'Mod-b', run: view => wrapSelection(view, '**')}, {key: 'Mod-i', run: view => wrapSelection(view, '*')}, {key: 'Mod-Shift-h', run: view => wrapSelection(view, '==')}, ...closeBracketsKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...completionKeymap, ...foldKeymap, indentWithTab]),
       modeSlot.current.of(context.current.mode === 'live' ? [liveField.current] : [highlightActiveLine()]),
       readOnlySlot.current.of([EditorState.readOnly.of(context.current.readOnly), EditorView.editable.of(!context.current.readOnly)]),
       EditorView.contentAttributes.of({'aria-label': '笔记编辑器', spellcheck: 'false', 'data-testid': 'markdown-editor'}),

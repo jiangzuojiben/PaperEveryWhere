@@ -4,7 +4,7 @@
 
 参考基线：Obsidian 核心 1.13.7、Windows、Electron 39.8.3。日期：2026-10-23。产品目标是独立实现完整客户端能力，并以自有账户、同步和发布服务替换原云服务。
 
-**“子集通过”仅指该格列出的操作；“待验证”表示还没有覆盖该要求的运行证据；“未实现”表示明确缺失。** 按钮、界面、函数或测试文件的存在不能自动改为通过。S1/S2 是参考样本静态证据，R1/R2/R3/R3W 是参考运行证据；其余编号分别记录独立实现的差分、模型、服务或界面证据。
+**“子集通过”仅指该格列出的操作；“待验证”表示还没有覆盖该要求的运行证据；“未实现”表示明确缺失。** 按钮、界面、函数或测试文件的存在不能自动改为通过。S1/S2/S3 是参考样本静态证据，R1/R2/R3/R3W 是参考运行证据；其余编号分别记录独立实现的差分、模型、服务或界面证据。
 
 本矩阵已纳入第三轮原版采样、同一合成插件的原生运行，以及嵌套布局与编辑状态恢复证据，独立客户端运行时为 Electron 42.11.9。第一轮 86 项、第二轮 227/227（零跳过）保留为各自历史结果。**第三轮冻结源码启用真实云集成的 Node 全套 309/309 通过、零跳过，云 API pytest 19 项及 23 个 subtest 通过；打包 0.3.1 已完成 U3/A3/V3/L3 所列有限验收。** 这些结果不能外推为完整 Obsidian 兼容。
 
@@ -14,6 +14,7 @@
 | --- | --- | --- |
 | S1 | 本轮 REA `ev_a048f1b4e87af29d1b416e1ec0a35573ce510a521d2bc12e3739dc68b17a15bf` | 原 ASAR 身份、package/main 静态结构；一份 JS 已解析 |
 | S2 | 本轮 REA `ev_e2864ebccbf0d9e2da9924351ded4444dd4fc2c6d015f70c124aa8370a443abc`，及 `research/rea-scope-2026-10-23.json` | 57 份原 app.js 精确片段的定向分析；31 个构造器/注册项、部分云边界；零解析失败 |
+| S3 | [原版 redo 绑定静态摘录](../research/windows-round3-hotkeys-static.json) | 对冻结原 ASAR/app.js 只读提取：historyKeymap 有 `Mod-y`，编辑器另明确追加 `Mod-Shift-z → redo`；在 Windows 对应 Ctrl+Y 与 Ctrl+Shift+Z。没有启动原版或验证实际按键分派，不能作为原版运行证据 |
 | R1 | 既有 `research/compatibility/` 语料及相邻原研究的运行时兼容规格 | 参考样本三次独立运行，20 组、34 个解析查询、10 个变更场景、218 项断言；不代表当前实现通过 |
 | R2 | [Windows 第二轮原版报告](windows-round2-reference.md)、[结构化观察与 REA 身份](../research/windows-round2-reference.json) | 4 次采纳的独立原版运行：书签/转换器、日记/唯一笔记、固定标签/分屏/浮窗恢复/幻灯片、36 份 Frontmatter 输入；REA 绑定控制页中的报告哈希，原窗口 PNG 另取。仅为参考事实，不是独立实现通过 |
 | R3 | [第三轮原版报告](windows-round3-reference.md)、[结构化观察](../research/windows-round3-reference.json) | 6 次采纳的原版运行、44 条观察、20 张 PNG；Editor/命令、元数据、12 份 Frontmatter、二进制/HTTP、渲染组件与自定义视图、递归布局及组合事件。observed 表示取得数据，不表示独立实现通过；组合事件不是 Windows 原生 IME |
@@ -25,7 +26,9 @@
 | N2 | [第二轮最终历史日志](../output/windows-round2-tests.log)、[脱敏汇总与源码哈希](../research/windows-round2-verification.json)、[测试源码](../tests) | 当轮 `VAULTDESK_CLOUD_INTEGRATION=1 node --test --test-concurrency=8 tests/*.test.mjs`：**227/227 通过，零跳过**。覆盖日期/转换/工作区/窗口/附件/网页/同步/链接索引/Bases 等模型与真实云集成；部分同步用例使用合成 HTTP，网页单测使用 FakeView，不能合并解释为全部 UI 通过 |
 | N3 | [第三轮 Node 全套日志](../output/windows-round3-tests.log)、[第三轮云 API 测试日志](../output/windows-round3-cloud-tests.log)、[测试源码](../tests) | 冻结源码启用 `VAULTDESK_CLOUD_INTEGRATION=1` 的 Node 全套 **309/309 通过，零失败/零跳过**；pytest **19 passed、23 subtests passed**。包含真实云集成及编辑器、布局、插件、二进制/HTTP、状态竞态与克隆/恢复回归；模型、注入 DOM 和服务测试不替代相应原生 UI，不能另加 U3/L3 等检查作为总数 |
 | E2 | [编辑器追加交互矩阵](editor-ui-verification.md) | 浏览器/独立组件中的表格点击落点、Ctrl+D 多选区编辑与 undo、Ctrl+B、标题折叠、任务续行/缩进、跨行标记和区块刷新；组合中切文件的尾字符只写回旧文件。另有 5 项 helper 测试；文件粘贴/拖放与组合事件为合成事件，不证明原生剪贴板或 IME |
-| E3 | [第三轮 Editor API、组合管线与状态修复](editor-ui-verification.md) | 独立组件中验证 UTF-16/事务/CAS、只读与切换阻断、外部更新隔离历史、选区及源码/阅读滚动恢复、渲染回调与清理；CDP 经 Chromium 组合管线产生可信 start/update/input，但未操作 Windows 候选窗口。实际系统 IME 仍待物理验收；原生布局恢复另见 L3 |
+| E3 | [第三轮 Editor API、组合管线与状态修复](editor-ui-verification.md) | 独立组件中验证 UTF-16/事务/CAS、只读与切换阻断、外部更新隔离历史、选区及源码/阅读滚动恢复、渲染回调与清理；CDP 经 Chromium 组合管线产生可信 start/update/input，但未操作 Windows 候选窗口。此项不是物理输入；后续实体键盘子集另见 E4，原生布局恢复另见 L3 |
+| E4 | [Windows 物理中文输入补充验收](windows-ime-verification.md)、[冻结输入事件及后续检查点](../research/windows-ime-physical-verification.json) | 打包 **0.3.1** 中由用户实体键盘输入中文，该输入阶段未注入中文或调用 CDP composition：4 个 trusted start、29 个 trusted update、39 对 trusted beforeinput/input；4 个 end 均为 `isTrusted:false`，来源未知。提交后两次 Ctrl+Z、两次小写 Ctrl+Shift+z 实验继续撤销，随后四次 Ctrl+Y 恢复全文与磁盘；源码→实时预览→阅读→源码及 B→A 切页后 A/B 磁盘摘要不变。小写组合实验无独立磁盘快照，不计 redo 通过。未截到系统候选窗，组合中切页和取消候选仍未验；后续控件/按键走 Playwright/CDP，不冒充用户物理输入 |
+| E5 | [0.3.2 打包 redo 补丁回归](../research/windows-ime-patch-packaged.json)、[本次 Node 日志](../output/windows-ime-patch-tests.log) | 打包 **0.3.2** 通过 Playwright/CDP 键盘路径的 **16/16** 检查：源码/实时预览中的 Ctrl+Shift+Z 与 Ctrl+Y、三模式保留内容、B 无法撤销 A、回 A 内容保持；最终独立磁盘读回，控制台 0 错误/0 警告。仅输入 ASCII，未直接调用 undo/redo API，**没有复验物理 IME**。补丁源码另重跑含真实云集成 Node 全套 **309/309、零跳过**；两类检查不相加 |
 | U3 | [第三轮原生插件验收](windows-round3-plugin-ui-verification.md)、[原始 JSON 与 fixture/renderer 哈希](../research/windows-round3-plugin-ui.json)、[宿主支持边界](plugin-compatibility.md) | 打包 **0.3.1** 的 `index-CWnBlYx-.js`，manifest/main 哈希与 R3W 一致；同一 `public-api-probe` 的 **10/10 case、29/29 断言**通过：Editor 事务/undo、tab/split 自定义视图、处理器与组件、Ribbon/状态、Frontmatter 更新/抛错/并发及二进制往返。外部禁用保留类型/state 占位、移除挂载与控件；控制台 0 错误/0 警告。只证明列出的检查，不等于所有字段或事件时序完全相等 |
 | A3 | [第三轮插件布局与 HTTP 原生补充](../research/windows-round3-plugin-layout-http-ui.json) | 打包 **0.3.1**：公开 layout 往返保留自定义视图的 `file` payload 与 `count:2`，同 key 命名恢复读回 count 2；loopback HTTP 的 Promise `text/json/arrayBuffer`、request 文本别名、`throw:false` 与默认失败拒绝共 **4/4** 检查通过；控制台 0 错误/0 警告。不证明任意自定义视图、全部 HTTP 网络/认证或生产服务 |
 | V3 | [第三轮自定义视图克隆与重载](../research/windows-round3-plugin-clone-cold-ui.json) | 打包 **0.3.1** 的实际 UI 克隆给新 leaf 身份，两个实例从 3/3 独立变为 3/4；保存的自定义类型、`file` payload 与 count 在 renderer 重载后、明确重新启用插件时恢复，原两组 leaf ID 保持，控制台 0 错误/0 警告。这里只验证 renderer 重载，**没有验证自定义视图的进程退出/重启** |
@@ -50,20 +53,22 @@
 
 独立客户端第三轮最终打包版本为 **0.3.1**；U3/L3 记录的 renderer 都为 `index-CWnBlYx-.js`，SHA-256 为 `d47b19986bd14bace1441fce3267eec7c3230d813e6d6de263b482801167277d`。A3/V3 的 scope 也指向该包。结论只适用于该产物和各报告明确覆盖的场景，后续修改必须重新验证。
 
+E4 是此后在同一 0.3.1 包上取得的物理输入补充，不改写第三轮冻结汇总或 309 项测试总数。后续 0.3.2 新增 `Mod-Shift-z → redo` 别名，E5 已取得打包自动键盘 16/16 及本次完整 Node 309/309、零跳过回归；与冻结的 54 份产品源码相比，只有 `app/Editor.jsx` 变化。补丁主 bundle 为 `index-BObaJjHD.js`，SHA-256 为 `48a2ed36290bc93419e23c78c572eca529e52d843674848248676e0efce316d9`。其独立报告不替换旧 R3/U3/L3 身份，0.3.1 的实体输入证据也不表示 0.3.2 已完成物理 IME 验收。
+
 ## 基础应用
 
 | ID | 功能面 | 验收要求 | 参考证据 | 当前验收 |
 | --- | --- | --- | --- | --- |
 | F01 | 本地 Vault、目录、附件 | 打开/创建库；二进制与文本往返；创建、移动、重命名、回收；中文/空格路径；配置目录边界 | S1、P1 | N1/C1/U2 原有存储、中文路径持久化和改链子集通过；W2 补充异库窗口隔离、真实 File 对象二进制导入及附件窗口权限。全部桌面交互与故障路径仍待验 |
 | F02 | 文件监听与缓存 | 应用内保存、外部写入、删除后重建、重命名事件；不丢失更新；冷启动重建索引 | 原研究 C01/C02 计划 | N1 外部 watcher、过期保存拒绝、插件缓存/改名竞态通过；W2 实测同库并发只接受一个当前版本、通知仅达同库窗口。完整冷启动及批量事件序列待验 |
-| F03 | Markdown 源码编辑 | 中文 IME、emoji、组合字符、多光标、撤销/重做、自动保存、崩溃恢复 | R3 Editor 与组合观察、C08 计划 | E1/E2/U2 原有编辑子集通过；E3 补充 Chromium 组合收尾与状态保护，U3 真实插件两处事务及单步 undo/redo，L3 原生重启后按保存偏移插字通过。尚未取得 Windows 系统候选窗口/提交的有效组合证据；原生 IME、长时编辑与崩溃恢复仍待验 |
+| F03 | Markdown 源码编辑 | 中文 IME、emoji、组合字符、多光标、撤销/重做、自动保存、崩溃恢复 | R3 Editor 与组合观察、C08 计划 | E1/E2/U2 原有编辑子集通过；E3 验 Chromium 组合收尾与状态保护，U3 验插件两处事务及单步 undo/redo，L3 验重启后按保存偏移插字。E4 补充 0.3.1 实体中文输入、提交后撤销/重做最终全文恢复及三模式/B→A 切页不改磁盘；4 个 end 非 trusted 且来源未知。系统候选窗、组合中切页、取消候选、长时编辑和崩溃恢复仍待验 |
 | F04 | 实时预览与阅读模式 | 标题、列表/任务、表格、代码、引用、脚注、公式、图表、callout；选区与链接语义 | R3 原生渲染、C09、P1 | E1/E2 原有任务、表格、折叠、跨行标记与嵌入子集通过；E3 有组件回调行偏移/清理，U3 真实插件阅读处理器排序、section 全文、代码块和 Component 子组件清理通过。普通源码围栏尚不转换为插件控件，完整 Live Preview 与全部嵌套语法仍有缺口 |
 | F05 | 链接解析 | Wiki/Markdown、标题/块、相对/库根路径、扩展名、大小写、中文、显示别名、同名消歧、未解析转已解析 | R1 | 冻结语料子集通过 I1/N1：34 个解析查询及相关元数据断言；未覆盖的语法、点击与预览行为不能外推 |
 | F06 | 重命名改链 | 存储移动与托管移动分离；保留原目标；改入链及自身出链；一次/总是/拒绝偏好；代码区不重写 | R1 | 冻结语料子集通过 I1/N1：10 个变更场景、同名碰撞、目录移动及偏好语义；另有 3 项 Canvas 引用维护测试，完整 UI 确认流程待验 |
 | F07 | 元数据、属性与标签 | YAML 类型与格式、标签/块/标题索引、损坏 YAML、增量替换、引用计数、源位置 | R1 子集、R2/R3 Frontmatter 与元数据 | I2 旧属性迁移 36/36 精确匹配，V1/V2/A2 属性编辑子集通过；U3 插件 Frontmatter 更新、抛错不写及并发计数写盘通过。I3 helper 仅 8/12 字节、11/12 接受结果一致，保留注释/CRLF/BOM 与拒绝数组是明确差异；批量属性及复杂 YAML 全面兼容仍待验 |
 | F08 | 附件阅读与嵌入 | PDF 页码/选区定位和返回、图片缩放、音视频、嵌入笔记/标题/块；附件重命名；保持资源生命周期 | S1 资源、P1；参考 PDF 行为尚未采样 | D1 桌面 PDF 子集通过：4 页中英文、中文搜索高亮、大纲/页码/缩放/旋转、选字剪贴板引用、Markdown 页码深链、CCITT 扫描样本、Esc 关闭搜索；密码/损坏/JPEG2000/JBIG2 独立样本待验；重复同挂载深链已有 U2 便携操作通过。V1 媒体仅组件 fixture；扫描无 OCR |
 | F09 | 工作区与窗口 | 标签页、固定、分屏、独立窗口、前进后退、同文多视图、后台与重启恢复 | R2/R3 递归分屏、固定、命名布局、浮窗及 ephemeral 状态 | W2 原有多窗口/缺库子集通过；L3 打包 0.3.1 的 8 项验 Markdown 嵌套分栏、固定/模式/编辑状态、拖动、命名布局及正常进程重启，含同 pane/path 与空分组。U3/A3/V3 验插件分屏、占位、状态往返及克隆后 renderer 重载；**自定义视图进程重启未验**。任意树/浮窗组合、跨 DPI/多屏与崩溃恢复未验；像素滚动不等于原版行单位格式 |
-| F10 | 搜索、导航、快捷键 | 全库/当前文件搜索、搜索语法、结果上下文、快捷切换、命令参数、用户快捷键持久化 | P1 | N1 搜索核心、U1 插件命令筛选执行通过；U2 实测 Ctrl+Alt+K 自定义命令快捷键并重载后触发，E1 打开查找/替换面板。其余快捷键冲突与搜索 UI 边界待验 |
+| F10 | 搜索、导航、快捷键 | 全库/当前文件搜索、搜索语法、结果上下文、快捷切换、命令参数、用户快捷键持久化 | P1、S3 redo 静态绑定 | N1 搜索核心、U1 插件命令筛选执行通过；U2 实测 Ctrl+Alt+K 自定义命令快捷键并重载后触发，E1 打开查找/替换面板。E4 的 0.3.1 提交后自动 Ctrl+Z/Ctrl+Y 最终恢复全文；E5 的 0.3.2 打包键盘 16 项含源码/实时预览两种 redo 绑定通过，S3 仍只是原版静态证据。其余快捷键冲突与搜索 UI 边界待验 |
 | F11 | 设置、主题、CSS | 全局与每库设置、主题安装/切换、CSS snippets、字体/布局、语言和配置迁移 | S1/S2、P1 | N1 旧设置只读导入、U2 自定义 CSS 保存并由 computed style 读回通过；主题安装未实现，主题目录、文件式 snippets、完整迁移及多语言待验 |
 | F12 | 扩展宿主 | Plugin API、命令/视图/事件生命周期、数据、卸载、错误隔离；目标插件逐一验收 | R3 公开 API、R3W 同包装原版 10/29 | 打包 0.3.1 的 U3 同插件 10 case/29 断言通过：Editor、自定义视图、Markdown 处理器、组件/控件卸载及 Frontmatter/二进制；A3 加入状态恢复与 HTTP 4 项，V3 验独立克隆和 renderer 重载后显式启用恢复。[支持边界](plugin-compatibility.md)列出差异。完整 API/任意社区插件未通过；Node/Electron、CodeMirror 扩展、动态依赖及插件浮窗/侧栏面板仍不支持 |
 | F13 | 系统集成 | 文件拖放/粘贴、外链、协议、CLI、窗口恢复、更新及平台差异 | S1、P1 | N1 CLI/URI、W2 真实 File 对象导入与伪造对象拒绝通过；A2 原生 renderer 的合成 ClipboardEvent 只生成一个 68 字节附件并插入链接、原文保留。实际系统剪贴板手势、全部拖放/菜单手势、OS 协议注册及更新仍待验 |
@@ -121,7 +126,7 @@ V2 的公式、分组、筛选及单元格编辑使用真实组件，但修改�
 
 R3W 与 U3 的 manifest/main 哈希一致，两边各通过 10 个 case、29 条断言；这不是逐字段相等结论。U3 最终记录来自打包 0.3.1 的 `index-CWnBlYx-.js`，`transaction` 返回类型与原版同为 undefined。Frontmatter 的字节保全策略、渲染子组件停用时机、插件持久化位置与原版仍有已记录差异。A3/V3 另验证公开布局、HTTP、克隆与重载的有限真实宿主路径。原版采样、两侧插件运行、helper 差分和组件测试分别保留证据层次，不以案例数量代替完整 Plugin API 覆盖率。
 
-E3 的 Chromium CDP 组合管线与 Windows 系统输入法候选窗口是不同验证范围。前者已观察可信的组合开始/更新及输入事件；原生系统 IME 的现有尝试尚未取得有效组合提交证据，仍需要物理输入验收，不能标为通过。L3 真实插字也不是 IME 验收。
+E3 的 Chromium CDP 组合管线与 E4 的实体键盘输入分开记录。E4 中用户实际输入中文，输入阶段没有注入中文或 CDP composition 调用，观察到 trusted start/update/beforeinput/input 和中文写盘；但 4 个 compositionend 均非 trusted，来源未知，也未实际截到系统候选窗。提交后的撤销/重做、三模式及 B→A 切页由 Playwright/CDP 操作，不能称为全程物理键盘验收。组合进行中切页及取消候选仍未验；L3 的普通插字也不是 IME 证据。
 
 ## 自有云服务替换
 
@@ -147,9 +152,9 @@ E3 的 Chromium CDP 组合管线与 Windows 系统输入法候选窗口是不同
 
 每行补充：参考版本/设置、输入文件及哈希、操作、预期、实际、测试产物或 REA Evidence ID、限制。视觉接近、文件兼容、行为兼容、插件兼容分别判断。按钮存在、静态代码路径存在、类型接口一致、原参考语料通过均不能相互替代。
 
-目前主要缺口：完整 Plugin API 与真实社区插件、原生 Windows IME/完整 Live Preview、任意布局与浮窗字段的跨 DPI/多屏/崩溃恢复、图谱分组与 Canvas/Bases 全部格式、主题安装、生产同步安全及故障恢复。U3/A3/V3 已证明公开插件的有限原生流程，L3 已证明指定 Markdown 嵌套布局与编辑状态的正常进程重启，不能继续把这些子集写为未实现。N1 的 86 项、N2 的 227/227 为历史批次；N3 冻结源码最终为 309/309、零跳过。差分、模型、组件与原生检查分别计数，不能相加为 UI 通过数。移动端和 macOS/Linux 没有本轮样本，必须另立平台矩阵；Windows 通过不能外推。当前实时帮助页提到的新功能需先确认是否属于 1.13.7 再扩充基线。
+目前主要缺口：完整 Plugin API 与真实社区插件、Windows IME 候选窗/取消/组合中切页及完整 Live Preview、任意布局与浮窗字段的跨 DPI/多屏/崩溃恢复、图谱分组与 Canvas/Bases 全部格式、主题安装、生产同步安全及故障恢复。U3/A3/V3 已证明公开插件的有限原生流程，L3 已证明指定 Markdown 嵌套布局与编辑状态的正常进程重启，E4 已取得 0.3.1 实体中文输入与提交后恢复的有限证据，不能继续把这些子集写为未实现。N1 的 86 项、N2 的 227/227 为历史批次；N3 冻结源码最终为 309/309、零跳过。差分、模型、组件与原生检查分别计数，不能相加为 UI 通过数。移动端和 macOS/Linux 没有本轮样本，必须另立平台矩阵；Windows 通过不能外推。当前实时帮助页提到的新功能需先确认是否属于 1.13.7 再扩充基线。
 
-REA 浏览器场景的后续计划在 [research/README.md](../research/README.md)。G1 捕获完整性标志只描述材料是否齐全，不等于与参考图谱比较相等。C1 云冒烟 PDF 仅是 58 字节的二进制传输样本；真实阅读器证据另见 D1。第一、二轮 Node 日志分别在 N1/N2，第三轮最终日志在 N3；原生与专项结果分列 U3/A3/V3/L3/E3/I3 及早期 W2/A2/C3/V2/P2。实际界面、模型及性能证据须按编号区分；均不能代替全平台、生产部署或完整参考应用对等验收。
+REA 浏览器场景的后续计划在 [research/README.md](../research/README.md)。G1 捕获完整性标志只描述材料是否齐全，不等于与参考图谱比较相等。C1 云冒烟 PDF 仅是 58 字节的二进制传输样本；真实阅读器证据另见 D1。第一、二轮 Node 日志分别在 N1/N2，第三轮最终日志在 N3；原生与专项结果分列 U3/A3/V3/L3/E3/E4/I3 及早期 W2/A2/C3/V2/P2。实际界面、模型及性能证据须按编号区分；均不能代替全平台、生产部署或完整参考应用对等验收。
 
 第一轮便携程序验收见 [Windows 开发预览验收](verification-2026-10-23.md)：原生插件CSP、JavaScript原文保存、Markdown/Canvas重命名改链、保存冲突双份保留及重复PDF深链均通过定向操作。
 

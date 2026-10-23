@@ -1,0 +1,600 @@
+{
+  "schema": "vaultdesk-ime-patch-packaged-v1",
+  "version": "0.3.2",
+  "completeObsidianParity": false,
+  "packagedUi": {
+    "scope": {
+      "url": "file:///C:/Users/[user]/Documents/%E6%96%87%E6%A1%A3%E8%B5%84%E6%96%99/PaperDesk/obsidian/release/VaultDesk-0.3.2-Windows-x64/resources/app/dist/index.html",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) VaultDesk/0.3.2 Chrome/148.0.7778.280 Electron/42.11.9 Safari/537.36",
+      "vaultPath": "C:\\Users\\[user]\\Documents\\文档资料\\PaperDesk\\obsidian\\output\\desktop-ui-1792757029542\\vault"
+    },
+    "checks": [
+      {
+        "name": "source typed",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "source undo",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline"
+        ],
+        "renderedText": "›Undo baseline",
+        "a": "Undo baseline",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "source Ctrl+Shift+Z redo",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "source undo for Ctrl+Y",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline"
+        ],
+        "renderedText": "›Undo baseline",
+        "a": "Undo baseline",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "source Ctrl+Y redo",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live keeps source content",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live typed",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVE",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live undo",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live Ctrl+Shift+Z redo",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVE",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live undo for Ctrl+Y",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE"
+        ],
+        "renderedText": "›Undo baseline SOURCE",
+        "a": "Undo baseline SOURCE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "live Ctrl+Y redo",
+        "path": "Redo-A.md",
+        "mode": "live",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVE",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "reading content",
+        "path": "Redo-A.md",
+        "mode": "reading",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVEUndo baseline SOURCE LIVE\n",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "source after reading",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVE",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "B unchanged",
+        "path": "Redo-B.md",
+        "mode": "source",
+        "lines": [
+          "B untouched"
+        ],
+        "renderedText": "›B untouched",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "B cannot undo A",
+        "path": "Redo-B.md",
+        "mode": "source",
+        "lines": [
+          "B untouched"
+        ],
+        "renderedText": "›B untouched",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      },
+      {
+        "name": "A retains redone content",
+        "path": "Redo-A.md",
+        "mode": "source",
+        "lines": [
+          "Undo baseline SOURCE LIVE"
+        ],
+        "renderedText": "›Undo baseline SOURCE LIVE",
+        "a": "Undo baseline SOURCE LIVE",
+        "b": "B untouched",
+        "passed": true
+      }
+    ],
+    "keys": [
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": " ",
+        "code": "Space",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "S",
+        "code": "KeyS",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "O",
+        "code": "KeyO",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "U",
+        "code": "KeyU",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "R",
+        "code": "KeyR",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "C",
+        "code": "KeyC",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "E",
+        "code": "KeyE",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrl": true,
+        "shift": true,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": true,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "End",
+        "code": "End",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": " ",
+        "code": "Space",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "L",
+        "code": "KeyL",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "I",
+        "code": "KeyI",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "V",
+        "code": "KeyV",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "E",
+        "code": "KeyE",
+        "ctrl": false,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Shift",
+        "code": "ShiftLeft",
+        "ctrl": true,
+        "shift": true,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": true,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "y",
+        "code": "KeyY",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-A.md"
+      },
+      {
+        "key": "Control",
+        "code": "ControlLeft",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-B.md"
+      },
+      {
+        "key": "z",
+        "code": "KeyZ",
+        "ctrl": true,
+        "shift": false,
+        "alt": false,
+        "isTrusted": true,
+        "path": "Redo-B.md"
+      }
+    ],
+    "console": {
+      "errors": [],
+      "warnings": []
+    },
+    "verifiedAt": "2026-10-23T12:04:19.254Z",
+    "method": "Packaged renderer UI keyboard route via Playwright/CDP; no direct undo/redo API",
+    "physicalIme": false,
+    "automatedText": "ASCII SOURCE/LIVE only",
+    "limit": "Physical Chinese IME evidence belongs to preserved version 0.3.1, not this keyboard test."
+  },
+  "uiChecks": {
+    "passed": 16,
+    "failed": 0
+  },
+  "independentFinalDisk": {
+    "a": {
+      "content": "Undo baseline SOURCE LIVE",
+      "sha256": "3f41f42bdcca2d293d4c20561b5425e6a3fbfe9e32e7056cd462b73b0dd434de"
+    },
+    "b": {
+      "content": "B untouched",
+      "sha256": "7192f0b805f5201e7e51792dc568ca6342af2509e4f6cd24059f9a05c2c18532"
+    }
+  },
+  "identity": {
+    "executable": "release\\VaultDesk-0.3.2-Windows-x64\\VaultDesk.exe",
+    "executableSha256": "4e3077f8c7235ec7eee8bb0524913d224d0ef9c6b836f4cf110c40937e8345ff",
+    "bundle": "index-BObaJjHD.js",
+    "bundleSha256": "48a2ed36290bc93419e23c78c572eca529e52d843674848248676e0efce316d9",
+    "editorSha256": "2bb775794e14f59ff850af8bca20989de6c074c0a86b1b8b96547e307cf528fe",
+    "packageJsonSha256": "0fde8c3ca9ff350fa90659628f24d362a4b008c59ed7969882cc3e545c2b98f5",
+    "packageLockSha256": "22955df541dcdcf14e963639eb0354df8a6a0a32f37795bfb4656c3d472731e6"
+  },
+  "productSourceChangesFromFrozen031": [
+    {
+      "path": "app/Editor.jsx",
+      "previousSha256": "4f178c06287344cd4f74d1a75e5014289a70a547f18e6000b9ff22ec6d9096e0",
+      "sha256": "2bb775794e14f59ff850af8bca20989de6c074c0a86b1b8b96547e307cf528fe"
+    }
+  ],
+  "nodeTests": {
+    "command": "VAULTDESK_CLOUD_INTEGRATION=1 node --test --test-concurrency=8 tests/*.test.mjs",
+    "passed": 309,
+    "failed": 0,
+    "skipped": 0,
+    "log": "output/windows-ime-patch-tests.log",
+    "logSha256": "530099657a59c72017488a0683392471b0abdfd84dc4906d124ce0b847064df3"
+  },
+  "build": {
+    "passed": true,
+    "log": "output/windows-ime-patch-build.log",
+    "logSha256": "676abb200356fd62ad1281f9c0c428961d9859a1794fa566c32334ca4d99c687"
+  },
+  "physicalImeReference": "research/windows-ime-physical-verification.json",
+  "physicalImeTestedOnThisVersion": false,
+  "driverNotes": [
+    "Two initial harness attempts used an async waitForFunction predicate and read the file before its 650ms autosave; no app failure inferred. Final driver explicitly polls awaited disk reads.",
+    "The lowercase Ctrl+Shift+z driver experiment belongs to the preserved 0.3.1 report; this packaged test sends uppercase Z."
+  ],
+  "reports": [
+    "docs/windows-ime-verification.md",
+    "research/windows-redo-alias-browser.json",
+    "research/windows-round3-hotkeys-static.json"
+  ],
+  "capturedAt": "2026-10-23T12:05:00.103309+00:00",
+  "driver": {
+    "path": "scripts/ime-patch-packaged-smoke.js",
+    "sha256": "da8b008b3a222130b5242a1d08c84cc1b3deb98a5b7945a7a0be3913e450f376"
+  }
+}
