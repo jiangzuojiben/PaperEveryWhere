@@ -6,6 +6,8 @@ VaultDesk 是围绕本地 Markdown 知识库的独立实现，目标参考 Obsid
 
 Windows 桌面优先；React 编辑界面、纯 JavaScript 文档核心、Electron 宿主及 Python 服务分层，保留跨平台架构。当前 Windows x64 便携目录是交付目标，macOS/Linux 包和平台行为尚未验收。
 
+0.2.0 的原版对照、227 项测试、多窗口/自动同步和桌面操作证据见 [Windows 第二轮验收](docs/windows-round2-verification.md)。
+
 ## 从源码运行桌面版
 
 需要 Node.js 22.13 或更高版本、npm，以及可下载依赖的网络。服务端单独需要 Python，纯本地笔记不需要启动服务。
@@ -39,7 +41,7 @@ npm start
 
 拿到构建产物后，把**整个目录**解压到可读位置，双击 `VaultDesk.exe`。该目录包含运行时和应用文件，仅复制 `.exe` 无法运行。桌面程序不要求本机预装 Node.js 或 Python；只有使用随附自部署服务源码时才需要 Python。
 
-这是免安装目录，并非“所有数据留在程序目录”的模式：程序设置与欢迎库仍放在 `%APPDATA%\VaultDesk`，个人笔记保留在自己选择的知识库目录。构建产物目前没有代码签名、自动更新器、安装器或系统 URI 注册。Windows 可能显示未知发布者；可先核验 `package-manifest.json` 和 `integrity.json` 所列的构建信息与文件哈希。
+这是免安装目录，并非“所有数据留在程序目录”的模式：程序设置与欢迎库仍放在 `%APPDATA%\VaultDesk`，个人笔记保留在自己选择的知识库目录。构建产物目前没有代码签名、自动更新器或安装器，也不会自动注册系统 URI。Windows 可能显示未知发布者；可先核验 `package-manifest.json` 和 `integrity.json` 所列的构建信息与文件哈希。
 
 便携目录附带云服务源码、启动脚本、兼容范围及第三方声明。移走或删除程序目录不会自动删除 `%APPDATA%\VaultDesk`、自行选择的知识库或另行部署的云数据库。
 
@@ -49,6 +51,7 @@ npm start
 - Markdown 支持源码、实时预览和阅读模式；`Ctrl+E` 切换阅读，`Ctrl+F` 查找，`Ctrl+Z` 撤销。
 - `[[笔记]]`、Markdown 链接、嵌入、回链和出链共用文档核心；托管重命名按偏好维护引用。出现外部修改冲突时应先检查两个版本。
 - 侧栏提供文件、搜索、图谱和日记入口；支持 Canvas、Bases 子集、属性、书签、模板及工作区等视图。具体边界见兼容矩阵。
+- 可将同一知识库或另一知识库打开到独立窗口；每个窗口保存自己的布局，重启恢复窗口及位置，同库窗口共用文件监听和同步任务。
 - 附件保留本地二进制文件；录音会请求麦克风权限；附件导出使用系统另存为对话框。
 - 文件历史和回收站位于库内 `.vaultdesk`，可以恢复应用保存前的版本及已移入回收站的内容。它们不是完整的离线备份策略。
 - 本地插件属于显式启用的受信任扩展代码，会获得应用渲染进程所具备的能力；默认禁用，每次启动需重新启用。目前不是通用 Obsidian 社区插件兼容宿主。
@@ -78,7 +81,7 @@ npm start
 
 在桌面应用“设置 → 同步与发布”填写 `http://127.0.0.1:8766`，注册自己的账号（密码至少 10 个字符），创建或选择远程库，再执行双向同步。第二台设备连接同一个自行部署的地址、账号及远程库。账号令牌只在本次应用会话中保留。
 
-同步为显式操作，支持文本和二进制、增量版本、删除与冲突副本。服务端能读取上传内容，**当前没有端到端加密**。通过远程网络使用时应在自有 HTTPS 反向代理后部署。不同设备应选择自己的本地副本，避免把同一个磁盘目录当成两台设备来测试。
+同步支持手动执行或用户开启的自动同步，也可暂停、排除文件夹和筛选附件类型。它处理文本和二进制、增量版本、删除与冲突副本，并在运行前让同库各窗口保存待提交的编辑内容。服务端能读取上传内容，**当前没有端到端加密**。通过远程网络使用时应在自有 HTTPS 反向代理后部署。不同设备应选择自己的本地副本，避免把同一个磁盘目录当成两台设备来测试。
 
 发布只公开明确选择且已同步的文件，站点无需登录即可访问。修改笔记后需要再次发布更新公开快照；取消发布会撤下对应站点。不要把同步本身误认为公开发布。
 
@@ -119,7 +122,7 @@ node desktop/cli.mjs --vault 'C:\Notes\MyVault' rename 'New.md' 'Moved.md'
 node desktop/cli.mjs --vault 'C:\Notes\MyVault' search 'tag:project'
 ```
 
-独立 URI 格式支持 `vaultdesk://open?file=Note.md` 和 `vaultdesk://new?name=New&content=Hello`。URI 只作用于当前已选库；指定其它库时会拒绝并提示先手动打开。代码接入了启动参数及应用事件，但目前没有向操作系统注册 URI 协议。
+独立 URI 格式支持 `vaultdesk://open?file=Note.md` 和 `vaultdesk://new?name=New&content=Hello`。URI 只作用于已经打开的库；指定未打开的库时会拒绝并提示先手动打开。宿主提供经原生确认的 `registerProtocol()` 接口，只注册 `vaultdesk://`，不会更改 `obsidian://`；启动应用本身不会注册协议。
 
 常规验证：
 
@@ -131,6 +134,9 @@ npm run build
 # 可选：真实本机 FastAPI + 两个临时 Vault 的互通测试
 $env:VAULTDESK_CLOUD_INTEGRATION = '1'
 node --test tests/desktop-cloud.test.mjs
+
+# 真实 Electron 多窗口、原生导入、保存与同步、重启恢复验证
+node scripts/desktop-window-smoke.mjs
 ```
 
 真实云集成测试创建临时数据库和合成 Vault，结束后清理；普通 `npm test` 默认跳过这一项，避免强制要求 Python。指定其它 Python 时使用 `VAULTDESK_CLOUD_PYTHON`。桌面 UI 测试可设置 `VAULTDESK_TEST_MODE=1` 和指向合成库的 `VAULTDESK_VAULT`，使用独立临时用户数据。详细宿主接口和测试入口见 [桌面文档](desktop/README.md)。

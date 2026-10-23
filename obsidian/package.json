@@ -1,6 +1,6 @@
 {
   "name": "vaultdesk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.cjs",
@@ -28,6 +28,7 @@
     "markdown-it": "^14.1.0",
     "markdown-it-footnote": "^4.0.0",
     "mermaid": "^11.6.0",
+    "moment": "2.31.0",
     "pdfjs-dist": "6.4.299",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -35,7 +36,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
-    "electron": "39.8.3",
+    "electron": "42.11.9",
     "electron-builder": "^26.0.12",
     "vite": "^6.3.5"
   },

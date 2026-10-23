@@ -32,6 +32,7 @@ export class VaultStore extends EventEmitter {
     super();
     this.root = root;
     this.queue = Promise.resolve();
+    this.stateQueues = new Map();
     this.watcher = null;
     this.timer = null;
     this.poll = null;
@@ -82,7 +83,7 @@ export class VaultStore extends EventEmitter {
       } catch (error) {
         if (!missing(error)) throw error;
         // Only the application root is created here; callers own file/directory creation.
-        if (part === '.vaultdesk') await fs.mkdir(current);
+        if (part === '.vaultdesk') await fs.mkdir(current).catch((failure) => { if (failure.code !== 'EEXIST') throw failure; });
       }
     }
     return current;
@@ -95,34 +96,59 @@ export class VaultStore extends EventEmitter {
   }
 
   async snapshot() {
-    const files = [];
+    // Share one I/O budget across every directory. Recursive traversal never
+    // retains a slot while waiting for its children, so deep trees cannot deadlock.
+    const waiting = [];
+    let active = 0;
+    const limited = (operation) => new Promise((resolve, reject) => {
+      const run = async () => {
+        active++;
+        try { resolve(await operation()); }
+        catch (error) { reject(error); }
+        finally { active--; waiting.shift()?.(); }
+      };
+      if (active < 16) void run(); else waiting.push(run);
+    });
+    const report = (filePath, error) => { if (!missing(error)) this.emit('warning', { path: filePath, message: error.message }); };
     const visit = async (relative) => {
-      const directory = await this.checkedPath(relative, { allowRoot: true });
-      const entries = await fs.readdir(directory, { withFileTypes: true });
+      const entries = await limited(async () => {
+        const directory = await this.checkedPath(relative, { allowRoot: true });
+        return fs.readdir(directory, { withFileTypes: true });
+      });
       entries.sort((a, b) => a.name.localeCompare(b.name));
-      for (const entry of entries) {
-        if (PRIVATE_DIRS.has(entry.name.toLowerCase()) || entry.name.startsWith('.vaultdesk-tmp-') || entry.isSymbolicLink()) continue;
+      const groups = await Promise.all(entries.map(async (entry) => {
+        if (PRIVATE_DIRS.has(entry.name.toLowerCase()) || entry.name.startsWith('.vaultdesk-tmp-') || entry.isSymbolicLink()) return [];
         const filePath = relative ? `${relative}/${entry.name}` : entry.name;
         try {
-          const absolute = await this.checkedPath(filePath);
-          const stat = await fs.stat(absolute);
-          if (stat.isDirectory()) {
-            files.push({ path: filePath, isDirectory: true });
-            await visit(filePath);
-          } else if (stat.isFile()) {
+          const file = await limited(async () => {
+            const absolute = await this.checkedPath(filePath);
+            const stat = await fs.stat(absolute);
+            if (stat.isDirectory()) return { path: filePath, isDirectory: true };
+            if (!stat.isFile()) return null;
             const file = { path: filePath, size: stat.size, mtime: stat.mtimeMs };
             if (isTextFile(filePath)) {
-              file.content = await fs.readFile(absolute, 'utf8');
+              const bytes = await this.readBytes(filePath);
+              file.content = bytes.data.toString('utf8');
+              file.mtime = bytes.mtime; file.version = bytes.version; file.size = bytes.data.length;
               file.text = file.content;
             }
-            files.push(file);
+            return file;
+          });
+          if (!file) return [];
+          if (file.isDirectory) {
+            // Preserve an otherwise visible directory even if its listing fails.
+            try { return [file, ...await visit(filePath)]; }
+            catch (error) { report(filePath, error); return [file]; }
           }
+          return [file];
         } catch (error) {
-          if (!missing(error)) this.emit('warning', { path: filePath, message: error.message });
+          report(filePath, error); return [];
         }
-      }
+      }));
+      // Promise.all retains the sorted input order, including depth-first folders.
+      return groups.flat();
     };
-    await visit('');
+    const files = await visit('');
     let settings = {};
     // Obsidian preferences are an optional read-only source; plugin code is never loaded.
     const legacyDirectory = path.join(this.root, '.obsidian');
@@ -136,18 +162,23 @@ export class VaultStore extends EventEmitter {
   }
 
   async readBytes(relative) {
-    const target = await this.checkedPath(relative);
-    const handle = await fs.open(target, 'r');
-    try {
-      const stat = await handle.stat();
-      if (!stat.isFile()) throw new Error('Expected a file');
-      return { data: await handle.readFile(), mtime: stat.mtimeMs };
-    } finally { await handle.close(); }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const target = await this.checkedPath(relative);
+      const handle = await fs.open(target, 'r');
+      try {
+        const before = await handle.stat();
+        if (!before.isFile()) throw new Error('Expected a file');
+        const data = await handle.readFile();
+        const after = await handle.stat();
+        if (before.mtimeMs === after.mtimeMs && before.ctimeMs === after.ctimeMs && before.size === after.size && data.length === after.size) return { data, mtime: after.mtimeMs, version: hash(data) };
+      } finally { await handle.close(); }
+    }
+    throw Object.assign(new Error('File kept changing while it was being read. Try again.'), { code: 'FILE_BUSY' });
   }
 
   async read(relative) {
-    const { data, mtime } = await this.readBytes(relative);
-    return { content: data.toString('utf8'), mtime };
+    const { data, mtime, version } = await this.readBytes(relative);
+    return { content: data.toString('utf8'), mtime, version };
   }
 
   async ensureParents(relative) {
@@ -165,6 +196,7 @@ export class VaultStore extends EventEmitter {
 
   async assertMtime(relative, expectedMtime) {
     if (expectedMtime === undefined || expectedMtime === null) return;
+    if (typeof expectedMtime !== 'number' || !Number.isFinite(expectedMtime)) throw new Error('Expected mtime must be a finite number');
     const target = await this.checkedPath(relative, { allowMissing: true });
     const stat = await fs.stat(target).catch((error) => { if (missing(error)) return null; throw error; });
     if (!stat || Math.abs(stat.mtimeMs - Number(expectedMtime)) > 0.001) {
@@ -175,36 +207,49 @@ export class VaultStore extends EventEmitter {
     }
   }
 
-  async writeAtomic(relative, data, expectedMtime, { createOnly = false, history = true } = {}) {
+  async assertVersion(relative, expectedVersion) {
+    if (expectedVersion === undefined || expectedVersion === null) return;
+    if (typeof expectedVersion !== 'string' || !/^[a-f0-9]{64}$/.test(expectedVersion)) throw new Error('Expected version must be a file content fingerprint');
+    const current = await this.readBytes(relative).catch((error) => { if (missing(error)) return null; throw error; });
+    if (!current || current.version !== expectedVersion) throw Object.assign(new Error('This file changed on disk. Reload or save a separate copy before overwriting.'), { code: 'VERSION_CONFLICT', currentMtime: current?.mtime ?? null });
+  }
+
+  async writeAtomic(relative, data, expectedMtime, { createOnly = false, history = true, expectedVersion } = {}) {
     normalizeVaultPath(relative);
     await this.ensureParents(relative);
     const target = await this.checkedPath(relative, { allowMissing: true });
     const existing = await fs.lstat(target).catch((error) => { if (missing(error)) return null; throw error; });
     if (existing && (!existing.isFile() || createOnly)) throw new Error('A file or folder already exists at this path');
     await this.assertMtime(relative, expectedMtime);
+    await this.assertVersion(relative, expectedVersion);
     if (existing && history) await this.recordHistory(relative);
     const temporary = path.join(path.dirname(target), `.vaultdesk-tmp-${id()}`);
     try {
       const handle = await fs.open(temporary, 'wx', 0o600);
       try { await handle.writeFile(data); await handle.sync(); } finally { await handle.close(); }
+      // Distinct commits have distinct mtimes even on coarse clocks. Set the
+      // temporary inode so the reported version belongs to the bytes we commit.
+      const modified = Math.max(Date.now(), (existing?.mtimeMs || 0) + 1);
+      await fs.utimes(temporary, new Date(), new Date(modified));
+      const committedStat = await fs.stat(temporary);
       await this.checkedPath(relative, { allowMissing: true });
       await this.assertMtime(relative, expectedMtime);
+      await this.assertVersion(relative, expectedVersion);
       if (createOnly) {
         // A hard link provides no-overwrite semantics even when another process creates the target.
         await fs.link(temporary, target);
         await fs.unlink(temporary);
       } else await fs.rename(temporary, target);
-      const stat = await fs.stat(target);
       this.notify(relative);
-      return { path: relative, mtime: stat.mtimeMs, size: stat.size };
+      return { path: relative, mtime: committedStat.mtimeMs, size: data.length, version: hash(data) };
     } finally { await fs.unlink(temporary).catch(() => {}); }
   }
 
-  write(relative, content, expectedMtime) {
+  write(relative, content, expectedMtime, expectedVersion) {
     if (typeof content !== 'string') throw new Error('Content must be a string');
-    return this.writeBytes(relative, Buffer.from(content, 'utf8'), expectedMtime);
+    return this.writeBytes(relative, Buffer.from(content, 'utf8'), expectedMtime, expectedVersion);
   }
-  writeBytes(relative, data, expectedMtime) { return this.exclusive(() => this.writeAtomic(relative, Buffer.from(data), expectedMtime)); }
+  writeBytes(relative, data, expectedMtime, expectedVersion) { return this.exclusive(() => this.writeAtomic(relative, Buffer.from(data), expectedMtime, { expectedVersion })); }
   create(relative, content = '') { return this.exclusive(() => this.writeAtomic(relative, Buffer.from(content, 'utf8'), undefined, { createOnly: true, history: false })); }
   createBytes(relative, data) { return this.exclusive(() => this.writeAtomic(relative, Buffer.from(data), undefined, { createOnly: true, history: false })); }
   mkdir(relative) {
@@ -235,26 +280,40 @@ export class VaultStore extends EventEmitter {
   }
 
   async getHistory(relative) {
-    normalizeVaultPath(relative);
+    relative = normalizeVaultPath(relative);
     try { return JSON.parse(await fs.readFile(await this.internalPath(`history/${hash(relative)}/index.json`), 'utf8')); }
     catch (error) { if (missing(error)) return []; throw error; }
   }
 
+  async historyRevision(relative, revision) {
+    relative = normalizeVaultPath(relative);
+    if (typeof revision !== 'string' || !/^[a-zA-Z0-9-]{1,100}$/.test(revision)) throw new Error('Invalid history revision');
+    const entries = await this.getHistory(relative);
+    const entry = entries.find((item) => item.id === revision);
+    if (!entry) throw new Error('History revision not found');
+    const data = await fs.readFile(await this.internalPath(`history/${hash(relative)}/${revision}.bin`));
+    if (entry.hash && hash(data) !== entry.hash) throw Object.assign(new Error('The saved history revision is damaged'), { code: 'HISTORY_CORRUPT' });
+    return { entry: { ...entry, path: relative, size: data.length }, data };
+  }
+
+  async readHistory(relative, revision) {
+    const { entry, data } = await this.historyRevision(relative, revision);
+    return isTextFile(entry.path) ? { ...entry, encoding: 'utf8', content: data.toString('utf8') } : { ...entry, encoding: 'base64' };
+  }
+
   restoreHistory(relative, revision) {
     return this.exclusive(async () => {
-      const entries = await this.getHistory(relative);
-      const entry = entries.find((item) => item.id === revision);
-      if (!entry) throw new Error('History revision not found');
-      const data = await fs.readFile(await this.internalPath(`history/${hash(relative)}/${entry.id}.bin`));
+      const { data } = await this.historyRevision(relative, revision);
       return this.writeAtomic(relative, data);
     });
   }
 
-  trash(relative, expectedMtime) {
+  trash(relative, expectedMtime, expectedVersion) {
     return this.exclusive(async () => {
       const target = await this.checkedPath(relative);
       const stat = await fs.stat(target);
       await this.assertMtime(relative, expectedMtime);
+      await this.assertVersion(relative, expectedVersion);
       if (stat.isFile()) await this.recordHistory(relative);
       const trashId = id();
       const directory = await this.internalPath(`trash/${trashId}`);
@@ -262,6 +321,7 @@ export class VaultStore extends EventEmitter {
       await this.writeInternal(`trash/${trashId}/entry.json`, { id: trashId, path: relative, timestamp: new Date().toISOString(), isDirectory: stat.isDirectory() });
       await this.checkedPath(relative);
       await this.assertMtime(relative, expectedMtime);
+      await this.assertVersion(relative, expectedVersion);
       await fs.rename(target, await this.internalPath(`trash/${trashId}/content`));
       this.notify(relative);
       return { path: relative, trashId };
@@ -349,7 +409,15 @@ export class VaultStore extends EventEmitter {
   }
   async saveState(name, value) {
     if (!/^[a-z0-9_-]+$/i.test(name)) throw new Error('Invalid state name');
-    await this.writeInternal(`${name}.json`, value);
+    // Layout saves can arrive from a debounce and beforeunload back-to-back.
+    // Order writes per state file without blocking independent windows or nesting
+    // the file-mutation queue (rename itself can save settings while holding it).
+    const previous = this.stateQueues.get(name) || Promise.resolve();
+    const pending = previous.catch(() => {}).then(() => this.writeInternal(`${name}.json`, value));
+    this.stateQueues.set(name, pending);
+    const clear = () => { if (this.stateQueues.get(name) === pending) this.stateQueues.delete(name); };
+    pending.then(clear, clear);
+    await pending;
     return true;
   }
   saveWorkspace(value) { return this.saveState('workspace', value); }

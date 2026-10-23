@@ -19,7 +19,7 @@ Node dependencies that are not included in the browser bundle.
 
 | Component | License |
 | --- | --- |
-| Electron 39.8.3 | MIT; bundled Chromium, Node.js and other components have their own notices |
+| Electron 42.11.9 | MIT; bundled Chromium, Node.js and other components have their own notices |
 | React, React DOM | MIT |
 | CodeMirror 6 packages and Lezer packages | MIT |
 | Markdown-it, Markdown-it-footnote | MIT |

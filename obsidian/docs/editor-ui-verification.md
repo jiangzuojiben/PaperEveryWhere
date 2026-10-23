@@ -107,3 +107,47 @@ Wikilink 不做 URL 百分号解码，Markdown URL 做解码；实际查找统�
 - 完整无障碍、所有主题与窄屏的视觉回归。
 
 上述范围不能依据本记录声明已完整还原或全部通过。
+
+## 追加：Windows 编辑交互矩阵
+
+2026-10-23 同日追加验证，使用独立 `editor-matrix` Playwright CLI 浏览器。
+后半程使用 `output/playwright/editor-probe.html` 单组件夹具，避免并行修改 App 导致整页重载干扰结果。夹具仅通过 Vite 开发服务器访问，没有读写磁盘知识库。
+
+本轮代码增加了 `onSelectionChange({from,to,text,characters,words,ranges})` 和 `onPasteFiles(files,{path,from,to,text})`。
+多选区统计中的 `from/to` 是主选区，`text` 用换行连接所有非空选区；`characters` 统计实际选中文字的 Unicode 码点，不把连接用的换行算入字符数。`getSelectionInfo()` 仍返回主选区，保持原调用契约。
+
+| 项目 | 验证方式与结果 |
+| --- | --- |
+| 复杂行内语法 | Live Preview 使用 Markdown 语法树处理嵌套粗体／斜体、删除线、多个反引号的代码跨度和平衡括号链接 URL；代码中的 `[[literal]] **raw**` 保持字面显示。纯函数测试另外覆盖转义、注释和未闭合标记。 |
+| 表格点击落点 | 实际点击 `beta` 单元格，源码光标为 149，与原文 `beta` 起点相同；原文不变。 |
+| 多选区格式 | 程序建立正向／反向两个选区后实际按 Ctrl+B，两处同时加粗，反向选区方向保留；回调统计 9 字符、2 词、2 个选区。 |
+| 键盘创建多选区 | 实际点击编辑器、Ctrl+Home、两次 Ctrl+D，得到 2 个 `same` 选区；键入 `word` 后原文为 `word word`，undo 后恢复 `same same`。 |
+| 模式与撤销 | 多选区加粗后点击阅读、实时预览，同一 CM 实例继续使用；历史深度为 1，undo 后逐字符恢复夹具原文。 |
+| 标题折叠 | 在源码模式实际点击标题折叠栏，折叠范围数为 1；切到实时预览仍为 1，源文始终不变。 |
+| 任务列表续行 | 在 `- [ ] first` 末尾按 Enter，生成第二行 `- [ ] `；输入 second 后 Tab 得到两个空格缩进，Shift+Tab 恢复。 |
+| 跨行选择边界 | 对 `**first\nsecond**` 将光标放在第二行时，两侧 `**` 都显示；选择第一行直到第二行起点后，原文仍不变。 |
+| 文件事件 | 合成的 ClipboardEvent 和 DragEvent 携带一个 PNG File，各触发一次回调，包含文件名、类型、大小以及原路径／选区；事件被阻止默认处理，文档不变；只读状态不再调用导入回调。 |
+| 组合事件边界 | 合成 compositionstart 后 `compositionStarted=true`、`composing=false`；这时请求阅读模式和外部 value，200 ms 后仍保持实时预览与旧文本。compositionend 后才切阅读并应用外部 value。 |
+| 富文本区块刷新 | 将嵌入文件内容由 `old embedded` 更新为 `new embedded` 后，Live Preview 区块同步更新；只读时编辑按钮 disabled，恢复编辑后重新启用，嵌入源码不变。 |
+
+文件事件验证仅覆盖编辑器到宿主的回调边界，没有验证 Windows 系统剪贴板或磁盘附件导入。组合事件验证没有打开系统输入法候选窗、没有提交真实 IME 文本，不能替代 Windows 原生 IME 验收。
+
+本轮发现跨行强调的开闭标记按各自行号隐藏，会造成一侧标记仍被隐藏。修正后每个标记保留整个语法跨度作为显示条件。首次热更新后的临时组件仍使用旧的闭包，结果未通过；整页刷新加载最终代码后，两侧标记均显示，结果才记为通过。
+
+证据：
+
+- [结果数据](../output/playwright/editor-matrix-results.txt)
+- [区块刷新结果](../output/playwright/editor-widget-refresh-results.txt)
+- [Live Preview 截图](../output/playwright/editor-matrix-live.png)
+- [单组件夹具](../output/playwright/editor-probe.html)
+- `node --test tests/editor-helpers.test.mjs`：5 项全部通过。
+
+本轮没有运行构建或写入 `dist`；最终整体构建由集成流程负责。原生 IME、超长文档性能、完整原版 Live Preview 一致性与真实文件导入仍需单独验证。
+
+### 追加修复：组合输入期间切换笔记
+
+只读复核发现原 path 分支在 compositionStarted 检查之前调用 `view.setState()`，而 props 已将 onChange 改为新笔记回调。现已把请求的文档上下文与当前接收输入的上下文分开：组合期间继续保留旧 path／回调；compositionend 之后保留 80 ms 稳定间隔，尾部输入或旧文档更新会延长间隔，再缓存旧状态并切换到最新请求的文档。模式切换也等待该文档切换完成。
+
+独立 `editor-composition` 浏览器在同一组件内设置 A、B 两个分别绑定路径的回调，实际发送合成 compositionstart、输入「中」、请求 B，200 ms 后仍显示 A 且 `compositionStarted=true`。随后发送 compositionend 并输入尾字符「文」，观察到两次写回均指向 A：A 为 `A original中文`，B 仍为 `B original`。完成切换后输入 `!` 只修改 B；撤销 B、返回 A 后中文仍在，A 的 undoDepth 为 1，再撤销恢复 A 原文。另一个探针在组合期间先请求 B 再请求 C＋阅读模式，结束后进入 C 的阅读内容，没有落到过期请求 B。
+
+结果：[editor-composition-path-results.txt](../output/playwright/editor-composition-path-results.txt)。这是 DOM 组合事件与浏览器 Unicode 插入探针，不是真实 Windows IME 候选／预编辑提交验收。未运行构建，独立浏览器已关闭。

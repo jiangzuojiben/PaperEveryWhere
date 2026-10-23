@@ -135,3 +135,34 @@ node scripts/cloud-sync-smoke.mjs
 ```
 
 脚本使用临时 SQLite、合成账号、两个临时本地 Vault 及动态 loopback 端口，真实调用 `desktop/sync.mjs`，验证双端离线冲突保留、PDF 字节一致性、删除传播、云历史恢复、选择发布、更新和撤销。结束时关闭它自己启动的服务并删除临时数据，保留脱敏汇总 `output/cloud-sync-smoke.json`；不读取用户 Vault 或账号。Python 路径可通过 `VAULTDESK_TEST_PYTHON` 覆盖。
+
+## 桌面自动、暂停和选择性同步接口
+
+`desktop/sync.mjs` 的 `syncVault(store, config, {onProgress, signal})` 保持手动同步契约，并接受以下可持久化配置；登录 `token` 只应保留在内存：
+
+```js
+{
+  baseUrl: 'http://127.0.0.1:8766', vaultId: 'remote-vault-id',
+  autoSync: false, paused: false, intervalMs: 60000,
+  excludeFolders: ['Private', 'Archive/Large'],
+  attachmentTypes: 'all' // 或 'none'，或 ['pdf', 'png', 'mp3']
+}
+```
+
+排除目录为 Vault 根相对路径，匹配完整目录边界及其后代，大小写无关。`.md`、`.canvas`、`.base` 始终视为笔记；其余文件根据附件扩展名允许列表选择。排除规则仅影响本地读写/上传决策，当前变更日志响应仍包含被排除内容，因此不宣称可节省对应的下行流量。`.vaultdesk`、`.obsidian`、`.git` 等本机元数据始终不上传。
+
+切换规则时保留已排除路径的版本基线；重新包含路径后重放远端日志，对已从本机移除的缓存重新下载，不据此制造远端删除墓碑。排除期间双方都有修改时仍产生保留双方内容的冲突副本。每个完成的文件操作先保存状态，再继续；PUT/DELETE 已被服务器接受但响应丢失时，下次同步从远端版本核对，避免重复版本。暂停可中止网络请求及后续文件；当前已完成的文件操作保留，重新开始会核对不确定的提交结果。
+
+`createSyncController(store, {onProgress, onStatus, beforeSync})` 对相同 `VaultStore` 返回同一个控制器，适合多窗口共享一个 Vault。方法为 `configure(config)`、`syncNow(config?)`、`pause()`、`resume()`、`getStatus()`、`close()`，也支持 `on('progress', callback)` 和 `on('status', callback)`。最后一个窗口关闭该 Vault 时调用 `close()`。自动模式会响应本地文件变化，并定期同步；网络/超时/429/5xx 使用指数退避，401 等需用户处理的错误停止自动重试。轮询间隔限制在 1 秒至 24 小时。
+
+每次控制器运行均先等待 `beforeSync({signal})`。桌面宿主通过 `sync-before` 事件要求同一个 Vault 的全部编辑窗口 flush，再经 `syncReady(requestId,{ok,error?})` 回应；任何失败、未确认、关闭、切库或中止都阻断该轮，避免下载覆盖未保存编辑。直接调用底层 `syncVault` 的调用者必须自行确保编辑缓冲已保存。
+
+`progress` 为 `{phase,path?,completed?,total?,uploaded,downloaded,deleted,skipped,conflicts,cursor,message?}`，`conflicts` 是数量。阶段包括 connecting、pulling、applying、uploading、idle、paused、error；拉取日志总量未知时不报告伪百分比。`status` 为 `{enabled,paused,running,phase,lastSuccess,lastError,nextRunAt,retryAttempt}`，时间为毫秒时间戳或 null，另有 preparing、syncing、offline 阶段。两类事件均不包含 token。
+
+本轮不启用设置同步；传入 `syncSettings:true` 会明确拒绝，防止把 workspace 中的账号凭证、插件状态或机器路径当普通笔记上传。现有自有云账号和公开页面仍不依赖官方云，且没有端到端加密。
+
+选择规则、掉线确认、暂停、自动重试及编辑器保存握手测试：
+
+```powershell
+node --test tests/desktop-sync.test.mjs tests/desktop-selective-sync.test.mjs
+```

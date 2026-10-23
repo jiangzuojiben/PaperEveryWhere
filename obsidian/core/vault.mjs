@@ -28,11 +28,18 @@ function pathList(paths) {
 }
 
 /** Raw linkpath resolution deliberately does not percent-decode; Markdown parsing does. */
+const preparedLinkIndexes = new WeakMap();
+function prepareLinks(paths) {
+  const all=pathList(paths),index=new Map(),basenames=new Map();
+  for(const path of all){index.set(lower(path),path);const name=lower(basename(path));if(!basenames.has(name))basenames.set(name,[]);basenames.get(name).push(path);}
+  return {all,index,basenames};
+}
+/** Immutable snapshot index. Call again after changing the vault path list. */
+export function createLinkIndex(paths) {const value=prepareLinks(paths),token=Object.freeze({size:value.all.length});preparedLinkIndexes.set(token,value);return token;}
 export function resolveLink(linkpath, sourcePath = '', paths = []) {
-  const all = pathList(paths);
+  const {all,index,basenames} = preparedLinkIndexes.get(paths)||prepareLinks(paths);
   let query = String(linkpath ?? '').replace(/\\/g, '/').split('|', 1)[0].split('#', 1)[0];
   if (external(query)) return null;
-  const index = new Map(all.map(path => [lower(path), path]));
   if (!query) return index.get(lower(sourcePath)) || null;
   const names = candidateNames(query);
   const exact = value => {
@@ -49,7 +56,7 @@ export function resolveLink(linkpath, sourcePath = '', paths = []) {
   const sourceDirectory = lower(dirname(sourcePath));
   for (const name of names) {
     const suffix = lower(name);
-    const candidates = all.filter(path => lower(basename(path)) === basename(suffix) && lower(path).endsWith(suffix));
+    const candidates = (basenames.get(basename(suffix))||[]).filter(path => lower(path).endsWith(suffix));
     if (!candidates.length) continue;
     candidates.sort((a, b) => {
       const aLocal = sourceDirectory && lower(dirname(a)).startsWith(sourceDirectory) ? 0 : 1;
@@ -266,8 +273,8 @@ export function parseMarkdown(value = '') {
   return { headings, tags: [...tagSet], frontmatter, references, blocks, frontmatterRange: range, frontmatterErrors };
 }
 
-export function getReferences(text, sourcePath = '', paths = []) {
-  return parseMarkdown(text).references.map(reference => ({ ...reference, path: resolveLink(reference.linkpath, sourcePath, paths) }));
+export function getReferences(text, sourcePath = '', paths = [], metadata) {
+  return (metadata||parseMarkdown(text)).references.map(reference => ({ ...reference, path: resolveLink(reference.linkpath, sourcePath, paths) }));
 }
 
 function relativePath(fromDirectory, target) {

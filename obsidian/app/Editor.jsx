@@ -2,12 +2,13 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Annotation, Compartment, EditorSelection, EditorState, StateEffect, StateField} from '@codemirror/state';
 import {Decoration, EditorView, WidgetType, drawSelection, dropCursor, highlightActiveLine, highlightSpecialChars, keymap, rectangularSelection} from '@codemirror/view';
 import {defaultKeymap, history, historyKeymap, indentWithTab, redo, selectAll, undo} from '@codemirror/commands';
-import {HighlightStyle, indentOnInput, syntaxHighlighting} from '@codemirror/language';
+import {HighlightStyle, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, syntaxTree} from '@codemirror/language';
 import {tags} from '@lezer/highlight';
-import {markdown, markdownKeymap} from '@codemirror/lang-markdown';
+import {markdown, markdownKeymap, markdownLanguage} from '@codemirror/lang-markdown';
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
 import {highlightSelectionMatches, openSearchPanel, search, searchKeymap} from '@codemirror/search';
 import {headingSlug, hydrateMarkdown, navigateTarget, renderMarkdown} from './markdown.js';
+import {inlinePreviewRanges, selectionInfo} from './editor-helpers.mjs';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -62,10 +63,13 @@ function toggleTask(view, lineIndex) {
 
 function wrapSelection(view, marker) {
   if (view.state.readOnly) return false;
-  const {from, to} = view.state.selection.main, selected = view.state.sliceDoc(from, to);
-  if (from >= marker.length && view.state.sliceDoc(from - marker.length, from) === marker && view.state.sliceDoc(to, to + marker.length) === marker) {
-    view.dispatch({changes: [{from: from - marker.length, to: from, insert: ''}, {from: to, to: to + marker.length, insert: ''}], selection: {anchor: from - marker.length, head: to - marker.length}, userEvent: 'input'});
-  } else view.dispatch({changes: {from, to, insert: marker + selected + marker}, selection: {anchor: from + marker.length, head: to + marker.length}, userEvent: 'input'});
+  const changes = view.state.changeByRange(range => {
+    const {from, to} = range, selected = view.state.sliceDoc(from, to), backwards = range.anchor > range.head;
+    const unwrap = from >= marker.length && view.state.sliceDoc(from - marker.length, from) === marker && view.state.sliceDoc(to, to + marker.length) === marker;
+    const start = from + (unwrap ? -marker.length : marker.length), end = start + selected.length;
+    return {changes: unwrap ? [{from: from - marker.length, to: from}, {from: to, to: to + marker.length}] : {from, to, insert: marker + selected + marker}, range: EditorSelection.range(backwards ? end : start, backwards ? start : end)};
+  });
+  view.dispatch(changes, {userEvent: 'input'});
   return true;
 }
 
@@ -112,18 +116,42 @@ class TaskWidget extends WidgetType {
 }
 
 class MarkdownWidget extends WidgetType {
-  constructor(text, from, context) { super(); this.text = text; this.from = from; this.context = context; }
-  eq(other) { return this.text === other.text && this.from === other.from && this.context === other.context; }
+  constructor(text, from, context) {
+    super(); this.text = text; this.from = from; this.context = context;
+    this.renderPath = context.current.path; this.renderFiles = context.current.files; this.readOnly = context.current.readOnly; this.assetResolver = context.current.resolveAsset;
+  }
+  eq(other) { return this.text === other.text && this.from === other.from && this.context === other.context && this.renderPath === other.renderPath && this.renderFiles === other.renderFiles && this.readOnly === other.readOnly && this.assetResolver === other.assetResolver; }
   toDOM(view) {
     const wrapper = document.createElement('div');
     wrapper.className = 'cm-live-widget markdown-rendered';
     const context = this.context.current;
     wrapper.innerHTML = renderMarkdown(this.text, {path: context.path, files: context.files, lineOffset: view.state.doc.lineAt(this.from).number - 1});
     const edit = document.createElement('button'); edit.className = 'cm-widget-edit'; edit.type = 'button'; edit.textContent = '‹/›'; edit.title = '编辑源码'; edit.setAttribute('aria-label', '编辑此区块源码');
-    const activate = event => { event.preventDefault(); event.stopPropagation(); view.dispatch({selection: {anchor: Math.min(this.from + 1, view.state.doc.length)}, scrollIntoView: true}); view.focus(); };
+    edit.disabled = context.readOnly;
+    const activate = event => {
+      if (this.context.current.readOnly || view.state.readOnly) return;
+      event.preventDefault(); event.stopPropagation();
+      const blockEnd = Math.min(this.from + this.text.length, view.state.doc.length);
+      const source = event.target.closest?.('[data-source-line]');
+      const lineNumber = source?.dataset.path === this.context.current.path ? Number(source.dataset.sourceLine) : 0;
+      let anchor = this.from;
+      if (lineNumber > 0 && lineNumber <= view.state.doc.lines) {
+        const line = view.state.doc.line(lineNumber);
+        anchor = Math.max(this.from, Math.min(line.from, blockEnd));
+        const cell = event.target.closest?.('td, th');
+        if (cell?.textContent.trim()) {
+          const offset = line.text.indexOf(cell.textContent.trim());
+          if (offset >= 0) anchor = Math.max(this.from, Math.min(line.from + offset, blockEnd));
+        }
+      }
+      view.dispatch({selection: EditorSelection.cursor(anchor), scrollIntoView: true}); view.focus();
+    };
     edit.addEventListener('click', activate); wrapper.append(edit);
-    wrapper.addEventListener('dblclick', activate);
-    wrapper.addEventListener('click', event => handleRenderedClick(event, {...this.context.current, view}));
+    wrapper.addEventListener('click', event => {
+      if (event.target.closest?.('a, button, input, audio, video, .callout-title[role="button"], .note-embed-content')) handleRenderedClick(event, {...this.context.current, view});
+      else if (!window.getSelection()?.toString()) activate(event);
+    });
+    wrapper.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target.classList.contains('callout-title')) { event.preventDefault(); event.target.click(); } });
     hydrateMarkdown(wrapper, {resolveAsset: context.resolveAsset}).then(() => view.requestMeasure());
     return wrapper;
   }
@@ -131,10 +159,10 @@ class MarkdownWidget extends WidgetType {
 }
 
 function liveDecorations(state, context) {
-  const ranges = [], hidden = [];
+  const ranges = [], hidden = [], inlineLines = new Set();
   const activeLines = new Set();
   for (const selection of state.selection.ranges) {
-    const first = state.doc.lineAt(selection.from).number, last = state.doc.lineAt(selection.to).number;
+    const first = state.doc.lineAt(selection.from).number, last = state.doc.lineAt(selection.empty ? selection.to : Math.max(selection.from, selection.to - 1)).number;
     for (let n = first; n <= last; n++) activeLines.add(n);
   }
   const replace = (from, to) => { if (from < to) hidden.push({from, to}); };
@@ -190,29 +218,17 @@ function liveDecorations(state, context) {
       ranges.push(Decoration.line({class: task[2] === ' ' ? 'cm-task-line' : 'cm-task-line cm-task-completed'}).range(line.from));
       ranges.push(Decoration.replace({widget: new TaskWidget(task[2] !== ' ', n - 1, state.readOnly)}).range(line.from + task[1].length, line.from + task[0].length));
     }
-    const wiki = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
-    let match;
-    while ((match = wiki.exec(text))) {
-      if (match.index > 0 && text[match.index - 1] === '!') continue;
-      const from = line.from + match.index, labelStart = from + (match[2] ? match[0].indexOf('|') + 1 : 2), end = from + match[0].length;
-      replace(from, labelStart); replace(end - 2, end);
-      mark(labelStart, end - 2, 'cm-live-link', {'data-note-target': navigateTarget(match[1], context.current.path, context.current.files)});
-    }
-    const links = /\[([^\]]+)\]\(([^)]+)\)/g;
-    while ((match = links.exec(text))) {
-      if (match.index > 0 && text[match.index - 1] === '!') continue;
-      const from = line.from + match.index, end = from + match[0].length;
-      replace(from, from + 1); replace(from + match[1].length + 1, end);
-      mark(from + 1, from + match[1].length + 1, 'cm-live-link', {'data-note-target': navigateTarget(match[2], context.current.path, context.current.files, 'markdown')});
-    }
-    for (const [pattern, className, delimiter] of [[/\*\*([^*]+)\*\*/g, 'cm-live-bold', 2], [/__([^_]+)__/g, 'cm-live-bold', 2], [/(?<!\*)\*([^*\n]+)\*(?!\*)/g, 'cm-live-italic', 1], [/(?<!_)_([^_\n]+)_(?!_)/g, 'cm-live-italic', 1], [/~~([^~]+)~~/g, 'cm-live-strike', 2], [/==([^=]+)==/g, 'cm-live-highlight', 2], [/`([^`]+)`/g, 'cm-live-code', 1]]) {
-      while ((match = pattern.exec(text))) {
-        const from = line.from + match.index, end = from + match[0].length;
-        replace(from, from + delimiter); replace(end - delimiter, end); mark(from + delimiter, end - delimiter, className);
-      }
-    }
-    for (const tag of text.matchAll(/(^|\s)(#[\p{L}\p{N}_/-]+)/gu)) mark(line.from + tag.index + tag[1].length, line.from + tag.index + tag[0].length, 'cm-live-tag');
+    inlineLines.add(n);
   }
+  const inline = inlinePreviewRanges(state);
+  const eligible = item => {
+    const from = item.scopeFrom ?? item.from, to = item.scopeTo ?? item.to;
+    const first = state.doc.lineAt(from).number, last = state.doc.lineAt(Math.max(from, to - 1)).number;
+    for (let line = first; line <= last; line++) if (!inlineLines.has(line)) return false;
+    return true;
+  };
+  for (const item of inline.hidden) if (eligible(item)) replace(item.from, item.to);
+  for (const item of inline.marks) if (eligible(item)) mark(item.from, item.to, item.className, item.target ? {'data-note-target': navigateTarget(item.target, context.current.path, context.current.files, item.syntax)} : undefined);
   hidden.sort((a, b) => a.from - b.from || b.to - a.to);
   let end = -1;
   for (const item of hidden) if (item.from >= end) { ranges.push(Decoration.replace({}).range(item.from, item.to)); end = item.to; }
@@ -222,7 +238,7 @@ function liveDecorations(state, context) {
 function createLiveField(context) {
   return StateField.define({
     create: state => liveDecorations(state, context),
-    update: (value, transaction) => transaction.docChanged || transaction.selection || transaction.effects.some(effect => effect.is(refreshPreview)) ? liveDecorations(transaction.state, context) : value,
+    update: (value, transaction) => transaction.docChanged || transaction.selection || syntaxTree(transaction.state) !== syntaxTree(transaction.startState) || transaction.effects.some(effect => effect.is(refreshPreview)) ? liveDecorations(transaction.state, context) : value,
     provide: field => EditorView.decorations.from(field),
   });
 }
@@ -242,7 +258,7 @@ function completionSource(context) {
       const prefix = wiki.text.slice(2);
       return {from: wiki.from + 2, options: Object.keys(context.current.files || {}).filter(path => /\.md$/i.test(path)).map(path => ({
         label: path.replace(/\.md$/i, ''), displayLabel: path.split('/').pop().replace(/\.md$/i, ''), detail: path.includes('/') ? path : undefined, type: 'text',
-        apply(view, option, from, to) { const suffix = view.state.doc.sliceString(to, to + 2) === ']]' ? '' : ']]'; view.dispatch({changes: {from, to, insert: option.label + suffix}, selection: {anchor: from + option.label.length + suffix.length}}); },
+        apply(view, option, from, to) { if (view.state.readOnly) return; const suffix = view.state.doc.sliceString(to, to + 2) === ']]' ? '' : ']]'; view.dispatch({changes: {from, to, insert: option.label + suffix}, selection: {anchor: from + option.label.length + suffix.length}}); },
       })).filter(option => option.label.toLowerCase().includes(prefix.toLowerCase())), validFor: /^[^\]\n]*$/};
     }
     return null;
@@ -258,12 +274,29 @@ function replaceFromOutside(view, value) {
   view.dispatch({changes: {from: start, to: oldEnd, insert: value.slice(start, newEnd)}, annotations: [externalUpdate.of(true)]});
 }
 
-export default function Editor({path = '', value = '', onChange, mode = 'live', onNavigate, resolveAsset, files = {}, onReady, commands = [], readOnly = false}) {
+export default function Editor({path = '', value = '', onChange, mode: requestedMode = 'live', onNavigate, resolveAsset, files = {}, onReady, onSelectionChange, onPasteFiles, commands = [], readOnly = false}) {
+  const [mode, setMode] = useState(requestedMode);
+  const [shownPath, setShownPath] = useState(path);
   const mount = useRef(null), preview = useRef(null), viewRef = useRef(null), states = useRef(new Map()), scrollPositions = useRef(new Map());
-  const context = useRef({}); context.current = {path, value, onChange, onNavigate, resolveAsset, files, mode, onReady, commands, readOnly};
+  const currentPath = useRef(path), compositionTailUntil = useRef(0);
+  const incoming = {path, value, onChange, onNavigate, resolveAsset, files, mode, onReady, onSelectionChange, onPasteFiles, commands, readOnly};
+  const requestedContext = useRef(incoming); requestedContext.current = incoming;
+  const context = useRef(incoming);
+  // Keep callbacks bound to the document still receiving composition events.
+  // Updating props to B must never send the tail of A's composition to B.
+  if (currentPath.current === path) context.current = incoming;
   const [hover, setHover] = useState(null), hoverTimer = useRef(null), hoverTarget = useRef(null);
-  const currentPath = useRef(path), modeSlot = useRef(new Compartment()), readOnlySlot = useRef(new Compartment()), liveField = useRef(null);
-  const html = useMemo(() => mode === 'reading' ? renderMarkdown(value, {path, files, rootPath: readOnly ? '__read_only__' : path}) : '', [value, path, files, mode, readOnly]);
+  const modeSlot = useRef(new Compartment()), readOnlySlot = useRef(new Compartment()), liveField = useRef(null);
+  const displayed = context.current;
+  const html = useMemo(() => mode === 'reading' ? renderMarkdown(displayed.value, {path: displayed.path, files: displayed.files, rootPath: displayed.readOnly ? '__read_only__' : displayed.path}) : '', [displayed.value, displayed.path, displayed.files, mode, displayed.readOnly]);
+  const compositionPending = () => viewRef.current?.compositionStarted || performance.now() < compositionTailUntil.current;
+
+  useEffect(() => {
+    let timer;
+    const apply = () => { if (compositionPending() || currentPath.current !== requestedContext.current.path) timer = setTimeout(apply, 80); else setMode(requestedMode); };
+    apply();
+    return () => clearTimeout(timer);
+  }, [requestedMode, path]);
 
   useEffect(() => {
     liveField.current = createLiveField(context);
@@ -280,16 +313,27 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
       return false;
     };
     const extensions = [
-      editorTheme, EditorView.lineWrapping, highlightSpecialChars(), history(), drawSelection(), dropCursor(), rectangularSelection(),
-      indentOnInput(), markdown({extensions: [frontmatterExtension]}), syntaxHighlighting(markdownHighlight), closeBrackets(), autocompletion({override: [completionSource(context)]}),
+      editorTheme, EditorView.lineWrapping, EditorState.allowMultipleSelections.of(true), highlightSpecialChars(), history(), drawSelection(), dropCursor(), rectangularSelection(),
+      indentOnInput(), markdown({base: markdownLanguage, extensions: [frontmatterExtension]}), syntaxHighlighting(markdownHighlight), foldGutter(), closeBrackets(), autocompletion({override: [completionSource(context)]}),
       search({top: true}), highlightSelectionMatches(),
-      keymap.of([{key: 'Mod-b', run: view => wrapSelection(view, '**')}, {key: 'Mod-i', run: view => wrapSelection(view, '*')}, {key: 'Mod-Shift-h', run: view => wrapSelection(view, '==')}, ...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...completionKeymap, ...markdownKeymap, indentWithTab]),
+      keymap.of([{key: 'Mod-b', run: view => wrapSelection(view, '**')}, {key: 'Mod-i', run: view => wrapSelection(view, '*')}, {key: 'Mod-Shift-h', run: view => wrapSelection(view, '==')}, ...closeBracketsKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...completionKeymap, ...foldKeymap, indentWithTab]),
       modeSlot.current.of(context.current.mode === 'live' ? [liveField.current] : [highlightActiveLine()]),
       readOnlySlot.current.of([EditorState.readOnly.of(context.current.readOnly), EditorView.editable.of(!context.current.readOnly)]),
       EditorView.contentAttributes.of({'aria-label': '笔记编辑器', spellcheck: 'false', 'data-testid': 'markdown-editor'}),
       EditorView.domEventHandlers({click: sourceClick}),
+      // compositionend may precede the final input/DOM mutation. Keep the old
+      // document bound through a quiet interval, extended by any pending edit.
+      EditorView.domEventObservers({
+        compositionend: () => { compositionTailUntil.current = performance.now() + 80; },
+        input: event => { if (event.isComposing || /composition/i.test(event.inputType || '')) compositionTailUntil.current = performance.now() + 80; },
+      }),
       EditorView.updateListener.of(update => {
-        if (update.docChanged && !update.transactions.some(transaction => transaction.annotation(externalUpdate))) context.current.onChange?.(update.state.doc.toString());
+        if (update.docChanged && !update.transactions.some(transaction => transaction.annotation(externalUpdate))) {
+          if (currentPath.current !== requestedContext.current.path) compositionTailUntil.current = performance.now() + 80;
+          context.current = {...context.current, value: update.state.doc.toString()};
+          context.current.onChange?.(context.current.value);
+        }
+        if (update.docChanged || update.selectionSet) context.current.onSelectionChange?.(selectionInfo(update.state));
       }),
     ];
     const makeState = text => EditorState.create({doc: text, extensions});
@@ -300,7 +344,7 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
       insert: text => { if (view.state.readOnly) return; view.dispatch(view.state.replaceSelection(String(text)), {scrollIntoView: true, userEvent: 'input'}); view.focus(); },
       replaceSelection: text => { if (view.state.readOnly) return; view.dispatch(view.state.replaceSelection(String(text)), {scrollIntoView: true, userEvent: 'input'}); view.focus(); },
       getSelection: () => view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to),
-      getSelectionInfo: () => { const {from, to} = view.state.selection.main; return {text: view.state.sliceDoc(from, to), from, to}; },
+      getSelectionInfo: () => { const {from, to} = view.state.selection.main; return {path: context.current.path, text: view.state.sliceDoc(from, to), from, to}; },
       undo: () => !view.state.readOnly && undo(view), redo: () => !view.state.readOnly && redo(view), selectAll: () => selectAll(view), find: () => openSearchPanel(view), replace: () => openSearchPanel(view),
       scrollToLine: number => {
         const lineNumber = Math.max(1, Math.min(Math.trunc(Number(number) || 1), view.state.doc.lines));
@@ -344,23 +388,30 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
     };
     viewRef.current.api = api;
     context.current.onReady?.(api);
+    context.current.onSelectionChange?.(selectionInfo(view.state));
     return () => { context.current.onReady?.(null); view.destroy(); viewRef.current = null; };
   }, []);
 
   useEffect(() => {
     const view = viewRef.current; if (!view) return;
     let timer;
-    if (currentPath.current !== path) {
-      states.current.set(currentPath.current, view.state);
-      scrollPositions.current.set(currentPath.current, view.scrollDOM.scrollTop);
-      if (states.current.size > 30) { const oldest = states.current.keys().next().value; states.current.delete(oldest); scrollPositions.current.delete(oldest); }
-      const cached = states.current.get(path);
-      view.setState(cached || view.makeState(value));
-      currentPath.current = path;
-      view.dispatch({effects: [modeSlot.current.reconfigure(mode === 'live' ? [liveField.current] : [highlightActiveLine()]), readOnlySlot.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)])]});
-      view.scrollDOM.scrollTop = scrollPositions.current.get(path) || 0;
-    }
-    const apply = () => { if (view.composing) timer = setTimeout(apply, 80); else if (currentPath.current === context.current.path) replaceFromOutside(view, context.current.value); };
+    const apply = () => {
+      if (compositionPending()) { timer = setTimeout(apply, 80); return; }
+      const next = requestedContext.current;
+      if (currentPath.current !== next.path) {
+        states.current.set(currentPath.current, view.state);
+        scrollPositions.current.set(currentPath.current, view.scrollDOM.scrollTop);
+        if (states.current.size > 30) { const oldest = states.current.keys().next().value; states.current.delete(oldest); scrollPositions.current.delete(oldest); }
+        const cached = states.current.get(next.path);
+        currentPath.current = next.path; context.current = next;
+        view.setState(cached || view.makeState(next.value));
+        view.dispatch({effects: [modeSlot.current.reconfigure(next.mode === 'live' ? [liveField.current] : [highlightActiveLine()]), readOnlySlot.current.reconfigure([EditorState.readOnly.of(next.readOnly), EditorView.editable.of(!next.readOnly)])]});
+        view.scrollDOM.scrollTop = scrollPositions.current.get(next.path) || 0;
+        context.current.onSelectionChange?.(selectionInfo(view.state));
+        setShownPath(next.path);
+      }
+      replaceFromOutside(view, next.value);
+    };
     apply();
     return () => clearTimeout(timer);
   }, [path, value]);
@@ -370,13 +421,13 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
     if (view) { view.dispatch({effects: modeSlot.current.reconfigure(mode === 'live' ? [liveField.current] : [highlightActiveLine()])}); view.requestMeasure(); }
   }, [mode]);
 
-  useEffect(() => { viewRef.current?.dispatch({effects: [readOnlySlot.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]), refreshPreview.of(null)]}); }, [readOnly]);
+  useEffect(() => { if (currentPath.current === path) viewRef.current?.dispatch({effects: [readOnlySlot.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]), refreshPreview.of(null)]}); }, [readOnly, path]);
 
-  useEffect(() => { const view = viewRef.current; if (view && mode === 'live' && !view.composing) view.dispatch({effects: refreshPreview.of(null)}); }, [files, resolveAsset]);
+  useEffect(() => { const view = viewRef.current; if (view && currentPath.current === path && mode === 'live' && !compositionPending()) view.dispatch({effects: refreshPreview.of(null)}); }, [files, resolveAsset, path]);
 
   useEffect(() => {
-    if (mode === 'reading' && preview.current) hydrateMarkdown(preview.current, {resolveAsset});
-  }, [html, mode, resolveAsset]);
+    if (mode === 'reading' && preview.current) hydrateMarkdown(preview.current, {resolveAsset: displayed.resolveAsset});
+  }, [html, mode, displayed.resolveAsset]);
 
   useEffect(() => { if (viewRef.current?.api) onReady?.(viewRef.current.api); }, [onReady]);
 
@@ -385,6 +436,7 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
 
   const hideHover = () => { clearTimeout(hoverTimer.current); hoverTarget.current = null; hoverTimer.current = setTimeout(() => setHover(null), 150); };
   const inspectLink = event => {
+    const {path, files} = context.current;
     if (event.target.closest?.('.link-preview')) { clearTimeout(hoverTimer.current); return; }
     const anchor = event.target.closest?.('[data-note-target]');
     let target = anchor?.dataset.noteTarget;
@@ -405,7 +457,22 @@ export default function Editor({path = '', value = '', onChange, mode = 'live', 
     hoverTimer.current = setTimeout(() => setHover({target, notePath, text, left, top}), 350);
   };
 
-  return <div className={`vault-editor mode-${mode}`} data-editor-mode={mode} onMouseOver={inspectLink} onMouseMove={inspectLink} onMouseLeave={hideHover}>
+  const receiveFiles = (event, drop = false) => {
+    const transfer = drop ? event.dataTransfer : event.clipboardData;
+    const incoming = Array.from(transfer?.files || []);
+    if (!incoming.length || !context.current.onPasteFiles) return;
+    event.preventDefault(); event.stopPropagation();
+    const view = viewRef.current;
+    if (!view || context.current.readOnly || view.state.readOnly) return;
+    if (drop && mode !== 'reading') {
+      const position = view.posAtCoords({x: event.clientX, y: event.clientY});
+      if (position != null) view.dispatch({selection: EditorSelection.cursor(position)});
+    }
+    context.current.onPasteFiles(incoming, {path: context.current.path, ...view.api.getSelectionInfo()});
+  };
+
+  return <div className={`vault-editor mode-${mode}`} data-editor-mode={mode} data-editor-path={shownPath} aria-busy={shownPath !== path} onMouseOver={inspectLink} onMouseMove={inspectLink} onMouseLeave={hideHover}
+    onPasteCapture={receiveFiles} onDropCapture={event => receiveFiles(event, true)} onDragOver={event => { if (onPasteFiles && Array.from(event.dataTransfer?.types || []).includes('Files')) event.preventDefault(); }}>
     <div ref={mount} className="codemirror-mount" hidden={mode === 'reading'} />
     {mode === 'reading' && <article ref={preview} className="markdown-rendered markdown-reading" aria-label="笔记阅读视图" tabIndex={0}
       onClick={event => handleRenderedClick(event, {...context.current, view: viewRef.current})}

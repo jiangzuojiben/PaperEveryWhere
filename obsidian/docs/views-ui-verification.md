@@ -27,6 +27,48 @@ The browser preview bridge does not supply attachment URLs. These checks therefo
 
 All evidence paths are relative to the `obsidian` project root. `output/` is intentionally ignored by Git; screenshots and UI snapshots are local verification artifacts, not shipped application assets.
 
+## Second-round Bases component verification
+
+On 2026-10-23 at 16:28–16:40, an isolated Chromium session rendered the real updated `BasesView` at `http://127.0.0.1:5178/output/playwright/bases-fixture.html`. The fixture source is `output/playwright/bases-fixture.jsx`. It supplied three Markdown records and one Base record, plus React state-backed `onChange` and `onEditFile(path, text)` callbacks. Callback results and displayed values were inspected after the UI actions.
+
+These are **browser component checks, not desktop host end-to-end checks**. Writes below mean updated fixture file text through the actual callback contract, not writes to a filesystem vault. This round did not launch Electron, verify desktop persistence/reopening, or verify the desktop attachment resolver. The application integration now supplies `path`, `onEditFile`, and file metadata, but that wiring is not established by this fixture.
+
+| Time | UI action or fixture configuration | Observed result | Evidence |
+| --- | --- | --- | --- |
+| 16:28–16:29 | Load `total: price * quantity` and `label: if(completed, "Done", "Open")`; configure descending `formula.total` sorting, `status` grouping, and `groupOrder: [planned, done, archived]`. | The planned group contained Alpha (24) then Gamma (9); done contained Beta (15). The explicitly configured archived group remained visible with zero rows. The total sum was 48. | Fixture source; initial accessibility snapshot `.playwright-cli/page-2026-10-23T08-28-48-080Z.yml`. |
+| 16:30 | Click Alpha's price edit button, change the numeric input from 12 to 20, and save. | `onEditFile` received `Projects/Alpha.md` with numeric `price: 20`. The YAML comment, unrelated `extra` property, and exact Markdown body remained present. Its total changed from 24 to 40; the sum changed from 48 to 64. | Callback text and footer values inspected after saving; snapshot `.playwright-cli/page-2026-10-23T08-30-17-775Z.yml`. |
+| 16:35 | Check Alpha's completed checkbox. | The note callback changed `completed` to Boolean `true`; its formula label changed from Open to Done. | The checked checkbox and Done output are visible in `output/playwright/bases-formula-filter.png`. |
+| 16:35 | Open the formula editor; create `taxTotal` with `(formula.total * 1.1).round(2)`; save. | The Base configuration gained the formula and its visible column. Alpha's output was 44. Existing `unknownSetting: keep-me` and view-level `pluginSetting: keep-this-too` survived the update. | Saved configuration inspected through the fixture callback state; snapshot `.playwright-cli/page-2026-10-23T08-35-49-595Z.yml`. |
+| 16:36 | Use the filter builder for this view: `formula.taxTotal`, greater than, 20. | The builder saved `formula["taxTotal"] > 20` under the view's `filters.and`, retaining the global Markdown filter. Three records became one (Alpha); the total sum became 40. The configured done and archived groups remained visible as empty groups. No evaluation error appeared. | `output/playwright/bases-formula-filter.png`; saved Base configuration and visible files inspected after applying. |
+| 16:40 | Open Base YAML, replace the draft with incomplete `views:`, and click Apply. | The editor displayed `views 必须是视图数组`. The last valid saved configuration remained intact, including the unknown field; the write log remained at the four successful earlier writes. | Snapshot `.playwright-cli/page-2026-10-23T08-40-30-448Z.yml`; saved value and write count inspected after rejection. |
+
+The screenshot was visually checked for table readability, group headers, formula values, filter controls, and the summary footer. This round rendered configured sorting and grouping; it did not separately exercise Shift-click multi-column sorting, every group selector action, or every cell editor type in the browser.
+
+### Model and source checks
+
+The final command `node --test tests/views-model.test.mjs` passed **39 tests, 0 failures**. These tests cover:
+
+- YAML note edits preserving body text, comments, BOM, CRLF, unrelated fields, and value types; rejection of malformed note YAML and writes to file/formula properties.
+- Base configuration round-trips preserving unknown global, view, and property fields.
+- Expression precedence, escaped literals, shorthand/bracket/nested property access, short-circuit conditions, formula dependencies, direct/indirect cycles, per-record isolation, explicit `thisRecord`, and a fixed clock.
+- Numeric conversion/formatting, calendar month-end arithmetic, durations, date fields, invalid date/overflow rejection, list membership, and nested map/filter/reduce scopes.
+- Global/view-compatible recursive filters, including NOT's none-of semantics; folders, nested/inline tags, property existence, and internal link resolution.
+- Multi-property and formula sorting without mutating the input records; automatic/manual grouping, explicit empty groups, missing values, and distinct false/zero values.
+- Numeric/date/Boolean summaries, custom `values` summary formulas, and stable per-row/per-call-site `random()` values within a view cache.
+- Rejection of host function calls and prototype traversal; no execution of data getters/coercion callbacks; bounded syntax/dependency depth, cyclic YAML handling, and bounded output expansion.
+
+The `Views.jsx` source also passed Vite's standalone JSX transform. A separate model probe confirmed a frontmatter wikilink with an alias resolves through `related.asFile().basename`. No production build was run in this round; the parent integration build remains separate.
+
+### Implemented Bases surface
+
+- Formula columns are calculated through a tokenizer, AST, and whitelisted interpreter, with visible per-cell errors. The evaluator does not use `eval` or the `Function` constructor.
+- Note cells expose text, number, checkbox, list, date, datetime, and JSON editors. Number and checkbox edits were exercised in the browser; the model tests verify typed value preservation and safe note updates. File metadata and formula columns are read-only.
+- The table supports column visibility/order/display names, formula creation/editing, multi-column sorting, grouping with explicit group ordering/empty groups, and per-column built-in or custom summaries.
+- The filter builder supports global or current-view scope, AND/OR/NOT composition, comparisons, containment, prefix/suffix, and empty-value checks. The YAML editor supports nested filter configuration.
+- File names and basenames are distinct. File tags, links, embeds, and backlinks derive from vault content; sizes and created/modified times can use supplied metadata. The current Base path provides the main-view `this.file` context.
+
+Format and behavior references: [official Bases syntax](https://obsidian.md/help/bases/syntax), [official functions](https://obsidian.md/help/bases/functions), and [official views documentation](https://obsidian.md/help/bases/views). The implementation and checks above cover the stated subset, not the complete reference product.
+
 ## Additional code checks
 
 - JSX parsing passed after the changes.
@@ -36,6 +78,9 @@ All evidence paths are relative to the `obsidian` project root. `output/` is int
 
 ## Remaining compatibility boundaries
 
-- Bases supports table views and a defined subset of filter expressions. Formulas, other layouts, advanced functions, and in-cell property editing are not complete.
+- Bases now supports the table/formula/editing/filter/sort/group/summary surface described above. Non-table layouts are still not implemented; their configuration is preserved and the UI explicitly reports that it is showing a table fallback.
+- Regular-expression literals/functions and plugin-provided formula functions are not implemented. Date formatting supports common numeric year/month/day/time tokens, not the full Moment format language. Untyped frontmatter date strings require explicit conversion such as `date(due)`; this round did not implement the full Obsidian property-type registry.
+- Formula link/image/HTML renderers use the existing safe navigation, asset, and Markdown paths, but this second-round fixture did not independently verify all of those renderers. `icon()` renders a limited common icon set; unknown names display as text. Desktop asset URLs and full embedded/sidebar `this` context behavior are not established by these checks.
+- Created/modified times require real host metadata and are not fabricated when absent. Large-vault performance, all function/type combinations, all cell editor interactions, and full desktop persistence remain outside this verification.
 - Canvas text nodes retain direct text editing. Markdown file nodes render reading content; supported media file nodes use the supplied attachment resolver. Web pages open externally rather than embedding third-party iframes. PDF cards open the application's PDF reader.
 - Group background-image configuration is preserved but is not rendered. This verification does not cover every native Canvas interaction, large-vault performance, every media codec, or desktop attachment protocol playback end to end.

@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useRef,
   useCallback,
+  useId,
 } from "react";
 import {
   Files,
@@ -53,9 +54,11 @@ import {
   Square,
 } from "lucide-react";
 import Editor from "./Editor.jsx";
+import { validateSelectedSpan } from "./editor-helpers.mjs";
 import { GraphView, CanvasView, BasesView, PropertiesPanel } from "./Views.jsx";
 import {
   parseMarkdown,
+  createLinkIndex,
   resolveLink,
   getReferences,
   searchFiles,
@@ -67,6 +70,33 @@ import { planExtract, planMerge } from "../core/composer.mjs";
 import { createExtensionHost } from "./extensions.js";
 import PluginsPanel from "./PluginsPanel.jsx";
 import PdfViewer from "./PdfViewer.jsx";
+import WebViewer from "./WebViewer.jsx";
+import FileTree from "./FileTree.jsx";
+import HistoryPanel from "./HistoryPanel.jsx";
+import {
+  BookmarksPanel,
+  Slides as DesktopSlides,
+  MarkdownConverterDialog,
+} from "./WindowsExtras.jsx";
+import {
+  normalizeBookmarks,
+  bookmarkTarget,
+  remapBookmarks,
+  toggleFileBookmark,
+  hasFileBookmark,
+} from "../core/windows-extras.mjs";
+import {
+  formatDate,
+  applyTemplate,
+  notePath,
+  uniqueNotePath,
+} from "../core/dates.mjs";
+import {
+  restorePanes,
+  remapPath,
+  remapPanes,
+  moveTab,
+} from "../core/workspace.mjs";
 import {
   WorkspacesPanel,
   ComposerDialogBody,
@@ -93,13 +123,29 @@ const emptySettings = {
   alwaysUpdateLinks: true,
   newLinkFormat: "shortest",
   useMarkdownLinks: false,
-  dailyFolder: "日记",
+  dailyFolder: "",
+  dailyFormat: "YYYY-MM-DD",
+  dailyTemplate: "每日笔记.md",
+  timeFormat: "HH:mm",
+  uniqueFormat: "YYYYMMDDHHmmss",
+  uniqueFolder: "",
+  uniqueTemplate: "",
   templateFolder: "模板",
   spellcheck: false,
   showLineNumbers: true,
   hotkeys: {},
   customCss: "",
+  fileSort: "name-asc",
 };
+const cloudPreferences = (value = {}) => ({
+  baseUrl: value.baseUrl || "http://127.0.0.1:8766",
+  vaultId: value.vaultId || "",
+  autoSync: !!value.autoSync,
+  paused: !!value.paused,
+  excludeFolders: value.excludeFolders || [],
+  attachmentTypes: value.attachmentTypes || "all",
+  intervalMs: value.intervalMs || 60000,
+});
 const isText = isTextPath;
 const IconButton = ({ icon: Icon, label, active, ...rest }) => (
   <button
@@ -140,6 +186,13 @@ export default function App() {
   const [files, setFiles] = useState({});
   const fileRef = useRef({});
   const mtimes = useRef({});
+  const versions = useRef({});
+  const [selection, setSelection] = useState({
+    text: "",
+    characters: 0,
+    words: 0,
+  });
+  const [splitDirection, setSplitDirection] = useState("horizontal");
   const [panes, setPanes] = useState([
     { tabs: ["开始.md"], active: "开始.md" },
   ]);
@@ -168,13 +221,18 @@ export default function App() {
     [vaults, setVaults] = useState([]),
     [sites, setSites] = useState([]),
     [syncing, setSyncing] = useState(false);
+  const configuredSync = useRef(null);
+  const [syncStatus, setSyncStatus] = useState({ phase: "idle" });
+  const [syncProgress, setSyncProgress] = useState(null);
   const [plugins, setPlugins] = useState([]),
     [pluginCommands, setPluginCommands] = useState([]),
     [pluginHost, setPluginHost] = useState(null);
   const runtime = useRef({});
+  const pendingOpen = useRef(null);
   const pluginEvents = useRef(new Set());
   const [recent, setRecent] = useState([]);
   const editors = useRef({});
+  const lastTextPaths = useRef({});
   const timers = useRef(new Map()),
     dirty = useRef(new Set()),
     saving = useRef(new Map());
@@ -192,10 +250,15 @@ export default function App() {
   const recorder = useRef(null);
   const active = panes[paneIndex]?.active;
   const content = files[active] || "";
+  useEffect(
+    () => setSelection({ text: "", characters: 0, words: 0 }),
+    [active, paneIndex],
+  );
   const allPaths = useMemo(
     () => snapshot.files.filter((f) => !f.isDirectory).map((f) => f.path),
     [snapshot],
   );
+  const linkIndex = useMemo(() => createLinkIndex(allPaths), [allPaths]);
   const allFiles = useMemo(
     () => ({ ...Object.fromEntries(allPaths.map((p) => [p, ""])), ...files }),
     [allPaths, files],
@@ -217,7 +280,10 @@ export default function App() {
       .filter((f) => !f.isDirectory && typeof f.content === "string")
       .forEach((f) => {
         next[f.path] = f.content;
-        if (!dirty.current.has(f.path)) mtimes.current[f.path] = f.mtime;
+        if (!dirty.current.has(f.path)) {
+          mtimes.current[f.path] = f.mtime;
+          versions.current[f.path] = f.version;
+        }
       });
     for (const p of dirty.current) next[p] = fileRef.current[p];
     fileRef.current = next;
@@ -232,33 +298,28 @@ export default function App() {
           w = await bridge.loadWorkspace();
         if (w) {
           setSettings({ ...emptySettings, ...s.settings, ...w.settings });
-          setBookmarks(w.bookmarks || []);
+          setBookmarks(normalizeBookmarks(w.bookmarks || []));
           setWorkspaces(w.workspaces || {});
           setMode(w.mode || "live");
           setRecent(w.recent || []);
           setPlugins((w.plugins || []).map((p) => ({ ...p, enabled: false })));
           setLeft(w.left !== false);
           setRight(w.right !== false);
+          setLeftTab(w.leftTab || "files");
+          setRightTab(w.rightTab || "outline");
+          setSplitDirection(w.splitDirection || "horizontal");
           if (w.cloud?.baseUrl)
             setCloud((c) => ({
               ...c,
-              baseUrl: w.cloud.baseUrl,
-              vaultId: w.cloud.vaultId || "",
+              ...cloudPreferences(w.cloud),
             }));
         }
         const paths = s.files.filter((f) => !f.isDirectory).map((f) => f.path);
-        const restored = w?.panes
-          ?.map((p) => ({
-            tabs: p.tabs.filter((t) => t.startsWith("@") || paths.includes(t)),
-            active:
-              paths.includes(p.active) || p.active?.startsWith("@")
-                ? p.active
-                : null,
-          }))
-          .filter((p) => p.tabs.length);
+        const restored = restorePanes(w?.panes, paths);
         if (restored?.length) {
           restored.forEach((p) => (p.active ||= p.tabs[0]));
-          setPanes(restored.slice(0, 2));
+          setPanes(restored);
+          setPaneIndex(Math.min(w?.paneIndex || 0, restored.length - 1));
         } else
           setPanes([
             {
@@ -280,14 +341,49 @@ export default function App() {
         notify(e.message);
       } finally {
         setReady(true);
+        if (pendingOpen.current) {
+          const event = pendingOpen.current;
+          pendingOpen.current = null;
+          queueMicrotask(() =>
+            runtime.current.openFile?.(event.path, event.state),
+          );
+        }
       }
     })();
     return bridge.onChange((event) => {
+      if (event?.type === "sync-before") {
+        Promise.resolve()
+          .then(() => runtime.current.flush?.())
+          .then(() => bridge.syncReady(event.requestId, { ok: true }))
+          .catch((error) =>
+            bridge
+              .syncReady(event.requestId, { ok: false, error: error.message })
+              .catch(() => {}),
+          );
+        return;
+      }
+      if (event?.type === "sync-progress") {
+        setSyncProgress(event);
+        return;
+      }
+      if (event?.type === "sync-status") {
+        setSyncStatus(event);
+        setSyncing(!!event.running);
+        if (event.phase === "idle" && event.lastSuccess)
+          refresh().catch((e) => notify(e.message));
+        return;
+      }
+
+      if (["webviewer", "sync-progress", "sync-status"].includes(event?.type))
+        return;
       if (event?.warning) notify(event.warning.message || event.warning);
       refresh()
         .then(() => {
-          if (event?.type === "open" && event.path)
-            runtime.current.openFile?.(event.path);
+          if (event?.type === "open" && event.path) {
+            if (runtime.current.isReady)
+              runtime.current.openFile?.(event.path, event.state);
+            else pendingOpen.current = event;
+          }
         })
         .catch((e) => notify(e.message));
     });
@@ -310,41 +406,44 @@ export default function App() {
     document.head.appendChild(style);
     return () => style.remove();
   }, [settings.customCss]);
+  const workspace = useMemo(
+    () => ({
+      panes,
+      paneIndex,
+      leftTab,
+      rightTab,
+      splitDirection,
+      workspaces,
+      settings,
+      bookmarks,
+      mode,
+      left,
+      right,
+      recent,
+      plugins,
+      cloud: cloudPreferences(cloud),
+    }),
+    [
+      panes,
+      paneIndex,
+      leftTab,
+      rightTab,
+      splitDirection,
+      workspaces,
+      settings,
+      bookmarks,
+      mode,
+      left,
+      right,
+      recent,
+      plugins,
+      cloud,
+    ],
+  );
   useEffect(() => {
-    if (!ready) return;
-    const epoch = vaultEpoch.current;
-    const t = setTimeout(() => {
-      if (!switching.current && epoch === vaultEpoch.current)
-        bridge
-          .saveWorkspace({
-            panes,
-            workspaces,
-            settings,
-            bookmarks,
-            mode,
-            left,
-            right,
-            recent,
-            plugins,
-            cloud: { baseUrl: cloud.baseUrl, vaultId: cloud.vaultId },
-          })
-          .catch((e) => notify(e.message));
-    }, 350);
-    return () => clearTimeout(t);
-  }, [
-    panes,
-    workspaces,
-    settings,
-    bookmarks,
-    mode,
-    left,
-    right,
-    recent,
-    plugins,
-    cloud.baseUrl,
-    cloud.vaultId,
-    ready,
-  ]);
+    if (ready && !switching.current)
+      bridge.saveWorkspace(workspace).catch((e) => notify(e.message));
+  }, [workspace, ready]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 6500);
@@ -358,10 +457,17 @@ export default function App() {
       const text = fileRef.current[p];
       const task = (async () => {
         try {
-          const result = await bridge.write(p, text, mtimes.current[p]);
+          const result = await bridge.write(
+            p,
+            text,
+            mtimes.current[p],
+            versions.current[p],
+          );
           contentEpoch.current++;
-          if (result?.mtime) mtimes.current[p] = result.mtime;
-          else mtimes.current[p] = (await bridge.read(p)).mtime;
+          if (result?.mtime) {
+            mtimes.current[p] = result.mtime;
+            versions.current[p] = result.version;
+          } else mtimes.current[p] = (await bridge.read(p)).mtime;
           if (fileRef.current[p] === text) dirty.current.delete(p);
           setSaveState(dirty.current.size ? "保存中…" : "已保存");
         } catch (e) {
@@ -402,6 +508,8 @@ export default function App() {
   );
   useEffect(() => {
     const handler = (e) => {
+      if (runtime.current.workspace)
+        bridge.saveWorkspace(runtime.current.workspace).catch(() => {});
       if (dirty.current.size || recorder.current) {
         e.preventDefault();
         e.returnValue = "仍有未保存的笔记";
@@ -416,6 +524,7 @@ export default function App() {
         old.map((pane, i) =>
           i === index
             ? {
+                ...pane,
                 tabs: pane.tabs.includes(p) ? pane.tabs : [...pane.tabs, p],
                 active: p,
               }
@@ -432,13 +541,28 @@ export default function App() {
     },
     [paneIndex],
   );
+  const togglePin = (p, index) =>
+    setPanes((ps) =>
+      ps.map((pane, i) =>
+        i !== index
+          ? pane
+          : {
+              ...pane,
+              pinned: (pane.pinned || []).includes(p)
+                ? pane.pinned.filter((t) => t !== p)
+                : [...(pane.pinned || []), p],
+            },
+      ),
+    );
   const closeTab = (p, index) =>
     setPanes((old) =>
       old.map((pane, i) => {
         if (i !== index) return pane;
         const tabs = pane.tabs.filter((t) => t !== p);
         return {
+          ...pane,
           tabs,
+          pinned: (pane.pinned || []).filter((t) => t !== p),
           active: pane.active === p ? tabs.at(-1) || null : pane.active,
         };
       }),
@@ -452,6 +576,34 @@ export default function App() {
     open(p);
     setDialog(null);
   };
+  function openExact(path, subpath = "", index = paneIndex) {
+    const actual =
+      allPaths.find((p) => p === path) ||
+      allPaths.find(
+        (p) => p.toLocaleLowerCase() === String(path).toLocaleLowerCase(),
+      );
+    if (!actual) {
+      notify(`书签目标不存在：${path}`);
+      return;
+    }
+    if (/\.pdf$/i.test(actual) && subpath) {
+      const page = /(?:^#?|&)page=(\d+)/.exec(subpath);
+      setPdfPages((v) => ({
+        ...v,
+        [actual]: {
+          page: page ? Number(page[1]) : 1,
+          key: (v[actual]?.key || 0) + 1,
+        },
+      }));
+    }
+    open(actual, index);
+    if (subpath && !/\.pdf$/i.test(actual))
+      setTimeout(
+        () =>
+          editors.current[index]?.scrollToHeading?.(subpath.replace(/^#/, "")),
+        150,
+      );
+  }
   const navigate = async (link, source = active, index = paneIndex) => {
     try {
       if (/^(?:https?:\/\/|mailto:)/i.test(link)) {
@@ -463,7 +615,7 @@ export default function App() {
         .replace(/\]\]$/, "")
         .split("|")[0];
       const [lp, ...sub] = targetLink.split("#");
-      const p = lp ? resolveLink(lp, source, allPaths) : source;
+      const p = lp ? resolveLink(lp, source, linkIndex) : source;
       if (p) {
         if (/\.pdf$/i.test(p)) {
           const page = /(?:^|&)page=(\d+)/.exec(sub.join("#"));
@@ -496,29 +648,67 @@ export default function App() {
       notify(e.message);
     }
   };
+  function assertFolder(folder) {
+    if (
+      folder &&
+      !snapshot.files.some(
+        (f) =>
+          (f.path === folder && f.isDirectory) ||
+          f.path.startsWith(folder + "/"),
+      )
+    )
+      throw Error(`目录「${folder}」不存在，请先创建目录。`);
+  }
   const daily = async () => {
-    const p = `${settings.dailyFolder ? settings.dailyFolder + "/" : ""}${date()}.md`;
-    if (p in files) {
+    const now = new Date(),
+      name = formatDate(now, settings.dailyFormat || "YYYY-MM-DD"),
+      p = notePath(settings.dailyFolder, name);
+    if (p in fileRef.current) {
       open(p);
       return;
     }
+    assertFolder(settings.dailyFolder);
     const template =
-      files[`${settings.templateFolder}/每日笔记.md`] || "# {{date}}\n\n";
+      fileRef.current[
+        `${settings.templateFolder}/${settings.dailyTemplate || "每日笔记.md"}`
+      ] || "# {{date}}\n\n";
     await create(
       p,
-      template
-        .replaceAll("{{date}}", date())
-        .replaceAll("{{time}}", new Date().toLocaleTimeString())
-        .replaceAll("{{title}}", date()),
+      applyTemplate(template, {
+        now,
+        title: name,
+        timeFormat: settings.timeFormat,
+      }),
     );
   };
-  const rename = async (value, decision) => {
+  async function uniqueNote() {
+    assertFolder(settings.uniqueFolder);
+    const now = new Date(),
+      note = uniqueNotePath(allPaths, {
+        folder: settings.uniqueFolder,
+        format: settings.uniqueFormat,
+        now,
+      });
+    const template =
+      fileRef.current[
+        `${settings.templateFolder}/${settings.uniqueTemplate}`
+      ] || "";
+    await create(
+      note.path,
+      applyTemplate(template, {
+        now,
+        title: note.title,
+        timeFormat: settings.timeFormat,
+      }),
+    );
+  }
+  const rename = async (value, decision, sourcePath) => {
+    const old = sourcePath || dialog.path;
     if (!settings.alwaysUpdateLinks && !decision) {
-      setDialog({ type: "renameDecision", path: dialog.path, value });
+      setDialog({ type: "renameDecision", path: old, value });
       return;
     }
     await flush();
-    const old = dialog.path;
     const result = await bridge.rename(old, value, {
       ...settings,
       decision: decision || "automatic",
@@ -530,24 +720,20 @@ export default function App() {
         "文件已移动，但部分引用保存失败：" +
           result.warnings.map((w) => w.path).join("、"),
       );
-    setPanes((ps) =>
-      ps.map((p) => ({
-        tabs: p.tabs.map((t) =>
-          t === old
-            ? value
-            : t.startsWith(old + "/")
-              ? value + t.slice(old.length)
-              : t,
-        ),
-        active:
-          p.active === old
-            ? value
-            : p.active?.startsWith(old + "/")
-              ? value + p.active.slice(old.length)
-              : p.active,
-      })),
+    setPanes((ps) => remapPanes(ps, old, value));
+    setWorkspaces((ws) =>
+      Object.fromEntries(
+        Object.entries(ws).map(([name, w]) => [
+          name,
+          { ...w, panes: remapPanes(w.panes || [], old, value) },
+        ]),
+      ),
     );
-    setBookmarks((b) => b.map((p) => (p === old ? value : p)));
+    setRecent((items) => items.map((p) => remapPath(p, old, value)));
+    navHistory.current = navHistory.current.map((p) =>
+      remapPath(p, old, value),
+    );
+    setBookmarks((b) => remapBookmarks(b, old, value));
     await refresh();
     setDialog(null);
   };
@@ -573,10 +759,8 @@ export default function App() {
     setPaneIndex(0);
   };
   const toggleBookmark = () => {
-    if (active)
-      setBookmarks((b) =>
-        b.includes(active) ? b.filter((p) => p !== active) : [...b, active],
-      );
+    if (active && !active.startsWith("@"))
+      setBookmarks((b) => toggleFileBookmark(b, active));
   };
   const newNote = () =>
     setDialog({ type: "create", value: "未命名.md", text: "" });
@@ -593,6 +777,9 @@ export default function App() {
       text: "views:\n  - type: table\n    name: 全部笔记\n",
     });
   runtime.current = {
+    flush,
+    workspace,
+    isReady: ready,
     getFiles: () =>
       snapshot.files.map((f) => ({
         ...f,
@@ -600,7 +787,7 @@ export default function App() {
       })),
     getActivePath: () => active,
     openFile: (p, state) =>
-      state?.subpath ? navigate(p + state.subpath, p) : open(p),
+      state?.subpath ? openExact(p, state.subpath) : open(p),
   };
   useEffect(() => {
     if (!snapshot.vaultPath) return;
@@ -635,7 +822,64 @@ export default function App() {
         : { scope: "workspace", name: "file-open", args: [null] };
     for (const listener of pluginEvents.current) listener(event);
   }, [active, paneIndex, pluginHost]);
+  useEffect(() => {
+    if (!ready || !bridge.configureSync) return;
+    if (!cloud.token || !cloud.vaultId) {
+      if (configuredSync.current?.vaultPath === snapshot.vaultPath) {
+        configuredSync.current = null;
+        bridge
+          .configureSync({
+            ...cloud,
+            token: "",
+            vaultId: "",
+            autoSync: false,
+            paused: true,
+          })
+          .then(setSyncStatus)
+          .catch((e) => notify(e.message));
+      }
+      return;
+    }
+    configuredSync.current = { vaultPath: snapshot.vaultPath };
+    bridge
+      .configureSync(cloud)
+      .then(setSyncStatus)
+      .catch((e) => notify(e.message));
+  }, [cloud, snapshot.vaultPath, ready]);
   const defaultCommands = [
+    ["Markdown 格式转换", "", () => setDialog({ type: "convert" })],
+    [
+      "在新窗口打开当前库",
+      "",
+      () =>
+        run(async () => {
+          await flush();
+          if (!bridge.newWindow) throw Error("请在桌面版使用多窗口");
+          await bridge.saveWorkspace(workspace);
+          await bridge.newWindow({
+            path: active?.startsWith("@") ? undefined : active,
+          });
+        }),
+    ],
+    [
+      "在新窗口打开其他知识库",
+      "",
+      () =>
+        run(async () => {
+          await flush();
+          await bridge.openVaultInNewWindow();
+        }),
+    ],
+    ["打开网页标签", "", () => setDialog({ type: "weburl" })],
+    [
+      "切换分屏方向",
+      "",
+      () =>
+        setSplitDirection((d) =>
+          d === "horizontal" ? "vertical" : "horizontal",
+        ),
+    ],
+    ["固定/取消固定当前标签", "", () => togglePin(active, paneIndex)],
     ["打开命令面板", "Ctrl+P", () => setDialog({ type: "commands" })],
     ["保存当前修改", "Ctrl+S", () => flush().catch(() => {})],
     ["关闭当前标签", "Ctrl+W", () => active && closeTab(active, paneIndex)],
@@ -651,16 +895,18 @@ export default function App() {
     [
       "笔记重组",
       "",
-      () =>
+      () => {
+        const selected = editors.current[paneIndex]?.getSelectionInfo?.();
+        if (selected?.path !== active) {
+          notify("组合输入尚未提交，请稍后重试。");
+          return;
+        }
         setDialog({
           type: "composer",
           path: active,
-          selection: editors.current[paneIndex]?.getSelectionInfo?.() || {
-            text: "",
-            from: 0,
-            to: 0,
-          },
-        }),
+          selection: selected,
+        });
+      },
     ],
     [
       "查看脚注",
@@ -679,16 +925,7 @@ export default function App() {
           setDialog({ type: "trash", items: await bridge.listTrash() });
         }),
     ],
-    [
-      "创建时间戳笔记",
-      "",
-      () =>
-        setDialog({
-          type: "create",
-          value: new Date().toISOString().replace(/[-:TZ.]/g, "") + ".md",
-          text: "",
-        }),
-    ],
+    ["创建时间戳笔记", "", () => run(uniqueNote)],
     ["新建笔记", "Ctrl+N", newNote],
     ["打开快速切换", "Ctrl+O", () => setDialog({ type: "quick" })],
     ["打开图谱", "", () => open("@graph")],
@@ -805,6 +1042,10 @@ export default function App() {
     await flush();
     await bridge.saveWorkspace({
       panes,
+      paneIndex,
+      leftTab,
+      rightTab,
+      splitDirection,
       workspaces,
       settings,
       bookmarks,
@@ -813,7 +1054,7 @@ export default function App() {
       right,
       recent,
       plugins,
-      cloud: { baseUrl: cloud.baseUrl, vaultId: cloud.vaultId },
+      cloud: cloudPreferences(cloud),
     });
     switching.current = true;
     setReady(false);
@@ -825,21 +1066,24 @@ export default function App() {
       timers.current.forEach(clearTimeout);
       timers.current.clear();
       mtimes.current = {};
+      versions.current = {};
       fileRef.current = {};
       metadataCache.current.clear();
       await refresh();
       const w = await bridge.loadWorkspace();
       setSettings({ ...emptySettings, ...s.settings, ...w?.settings });
-      setBookmarks(w?.bookmarks || []);
+      setBookmarks(normalizeBookmarks(w?.bookmarks || []));
       setWorkspaces(w?.workspaces || {});
       setPdfPages({});
       setRecent(w?.recent || []);
       setMode(w?.mode || "live");
       setLeft(w?.left !== false);
       setRight(w?.right !== false);
+      setLeftTab(w?.leftTab || "files");
+      setRightTab(w?.rightTab || "outline");
+      setSplitDirection(w?.splitDirection || "horizontal");
       setCloud({
-        baseUrl: w?.cloud?.baseUrl || "http://127.0.0.1:8766",
-        vaultId: w?.cloud?.vaultId || "",
+        ...cloudPreferences(w?.cloud),
         token: "",
       });
       setCloudUser(null);
@@ -850,19 +1094,10 @@ export default function App() {
       navHistory.current = [];
       navIndex.current = -1;
       const paths = s.files.filter((f) => !f.isDirectory).map((f) => f.path);
-      const valid = w?.panes
-        ?.map((p) => {
-          const tabs = p.tabs.filter(
-            (t) => paths.includes(t) || t.startsWith("@"),
-          );
-          return { tabs, active: tabs.includes(p.active) ? p.active : tabs[0] };
-        })
-        .filter((p) => p.tabs.length);
+      const valid = restorePanes(w?.panes, paths);
       const p = paths.find((p) => p.endsWith(".md")) || paths[0];
       setPanes(
-        valid?.length
-          ? valid.slice(0, 2)
-          : [{ tabs: p ? [p] : [], active: p || null }],
+        valid?.length ? valid : [{ tabs: p ? [p] : [], active: p || null }],
       );
       setPaneIndex(0);
     } finally {
@@ -919,21 +1154,20 @@ export default function App() {
     for (const [p, text] of Object.entries(files)) {
       if (!p.endsWith(".md")) continue;
       let cached = metadataCache.current.get(p);
-      if (!cached || cached.text !== text || cached.pathsKey !== pathsKey) {
-        cached = {
-          text,
-          pathsKey,
-          meta: parseMarkdown(text),
-          refs: getReferences(text, p, allPaths),
-        };
-        metadataCache.current.set(p, cached);
+      if (!cached || cached.text !== text) {
+        cached = { text, meta: parseMarkdown(text) };
       }
+      if (cached.pathsKey !== pathsKey || !cached.refs) {
+        cached = { ...cached, pathsKey,
+          refs: getReferences(text, p, linkIndex, cached.meta) };
+      }
+      metadataCache.current.set(p, cached);
       result[p] = cached;
     }
     for (const p of metadataCache.current.keys())
       if (!(p in files)) metadataCache.current.delete(p);
     return result;
-  }, [files, allPaths]);
+  }, [files, allPaths, linkIndex]);
   const meta = indexed[active]?.meta || {};
   const backlinks = useMemo(
     () =>
@@ -972,6 +1206,7 @@ export default function App() {
       parts.forEach((name, i) => {
         tree[name] ||= {
           _path: parts.slice(0, i + 1).join("/"),
+          _mtime: f.mtime || 0,
           _children: Object.create(null),
           _folder: !!(i < parts.length - 1 || f.isDirectory),
         };
@@ -984,13 +1219,38 @@ export default function App() {
         .sort(
           (a, b) =>
             Number(b[1]._folder) - Number(a[1]._folder) ||
-            a[0].localeCompare(b[0], "zh"),
+            (settings.fileSort === "modified"
+              ? b[1]._mtime - a[1]._mtime
+              : settings.fileSort === "name-desc"
+                ? b[0].localeCompare(a[0], "zh")
+                : a[0].localeCompare(b[0], "zh")),
         )
         .map(([name, n]) => (
           <React.Fragment key={n._path}>
             <div
               className={"tree-row" + (n._path === active ? " selected" : "")}
               style={{ paddingLeft: 10 + depth * 16 }}
+              draggable
+              onDragStart={(e) =>
+                e.dataTransfer.setData("application/x-vaultdesk-file", n._path)
+              }
+              onDragOver={(e) => {
+                if (
+                  n._folder &&
+                  e.dataTransfer.types.includes("application/x-vaultdesk-file")
+                )
+                  e.preventDefault();
+              }}
+              onDrop={(e) => {
+                const source = e.dataTransfer.getData(
+                  "application/x-vaultdesk-file",
+                );
+                if (!n._folder || !source) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const dest = n._path + "/" + source.split("/").pop();
+                if (dest !== source) run(() => rename(dest, undefined, source));
+              }}
               onClick={() =>
                 n._folder
                   ? setCollapsed((c) => {
@@ -1106,8 +1366,11 @@ export default function App() {
       const input = Object.fromEntries(
         records.map((file) => [file.path, file.content ?? ""]),
       );
-      const versions = Object.fromEntries(
+      const modificationTimes = Object.fromEntries(
         records.map((file) => [file.path, file.mtime]),
+      );
+      const versions = Object.fromEntries(
+        records.map((file) => [file.path, file.version]),
       );
       const plan =
         operation === "extract"
@@ -1118,27 +1381,31 @@ export default function App() {
         (edit) => edit.kind !== "create",
       )) {
         const disk = await bridge.read(edit.path);
-        if (disk.content !== edit.before || disk.mtime !== versions[edit.path])
+        if (
+          disk.content !== edit.before ||
+          disk.mtime !== modificationTimes[edit.path] ||
+          disk.version !== versions[edit.path]
+        )
           throw Error(`${edit.path} 已在外部修改，请重新打开笔记重组。`);
       }
       for (const edit of plan.writes) {
         if (edit.kind === "create") await bridge.create(edit.path, edit.after);
-        else await bridge.write(edit.path, edit.after, versions[edit.path]);
+        else
+          await bridge.write(
+            edit.path,
+            edit.after,
+            modificationTimes[edit.path],
+            versions[edit.path],
+          );
         written++;
       }
-      for (const path of plan.deletes) await bridge.trash(path, versions[path]);
+      for (const path of plan.deletes)
+        await bridge.trash(path, modificationTimes[path], versions[path]);
       contentEpoch.current++;
       await refresh();
       if (operation === "merge") {
-        setPanes((ps) =>
-          ps.map((p) => ({
-            tabs: [...new Set(p.tabs.map((t) => (t === source ? target : t)))],
-            active: p.active === source ? target : p.active,
-          })),
-        );
-        setBookmarks((items) => [
-          ...new Set(items.map((p) => (p === source ? target : p))),
-        ]);
+        setPanes((ps) => remapPanes(ps, source, target));
+        setBookmarks((items) => remapBookmarks(items, source, target));
       }
       setDialog(null);
       open(target);
@@ -1164,7 +1431,65 @@ export default function App() {
     }
   }
 
+  async function importAttachments(
+    dropped,
+    source = active,
+    index = paneIndex,
+    suppliedSelection,
+  ) {
+    const selected =
+      suppliedSelection || editors.current[index]?.getSelectionInfo?.();
+    const original = fileRef.current[source];
+    await flush();
+    let imported = [];
+    if (bridge.importDroppedFiles && [...dropped].every((file) => file.name)) {
+      try {
+        imported = await bridge.importDroppedFiles([...dropped], "附件");
+      } catch (error) {
+        if (![...dropped].every((file) => file.type?.startsWith("image/")))
+          throw error;
+      }
+    }
+    if (!imported.length) {
+      if (!bridge.writeBinary) throw Error("请在桌面版导入附件");
+      for (const file of dropped) {
+        if (file.size > 64 * 1024 * 1024) throw Error("单个附件超过64MB");
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        const filename = (file.name || "粘贴图片.png").replace(
+          /[<>:"/\\|?*\x00-\x1f]/g,
+          "_",
+        );
+        const path = `附件/${Date.now()}-${crypto.randomUUID().slice(0, 6)}-${filename}`;
+        await bridge.writeBinary(path, btoa(binary));
+        imported.push({ path });
+      }
+    }
+    const links = imported
+      .map((file) => `![[${typeof file === "string" ? file : file.path}]]`)
+      .join("\n");
+    if (source?.endsWith(".md") && source in fileRef.current) {
+      const current = fileRef.current[source];
+      const next =
+        current === original && validateSelectedSpan(selected, source, original)
+          ? current.slice(0, selected.from) + links + current.slice(selected.to)
+          : current + "\n" + links + "\n";
+      change(source, next);
+      await save(source);
+    }
+    await refresh();
+    notify(`已导入 ${imported.length} 个附件`);
+  }
   const view = (p, i) => {
+    if (p?.startsWith("@web:"))
+      return (
+        <WebViewer
+          key={`${snapshot.vaultPath}:${p}:${i}`}
+          url={p.slice(5)}
+          visible={!dialog && !busy && ready}
+        />
+      );
     if (!p)
       return (
         <div className="empty-pane">
@@ -1203,9 +1528,16 @@ export default function App() {
       return (
         <BasesView
           key={`${snapshot.vaultPath}:${p}`}
+          path={p}
+          metadata={Object.fromEntries(
+            snapshot.files.map((file) => [file.path, file]),
+          )}
           value={files[p] || ""}
           onChange={(v) => change(p, v)}
           files={allFiles}
+          onEditFile={(path, text) => change(path, text)}
+          resolveAsset={(path) => bridge.assetUrl(path)}
+          onNavigate={(link, sourcePath) => navigate(link, sourcePath, i)}
           onOpen={(path) => open(path, i)}
         />
       );
@@ -1245,7 +1577,13 @@ export default function App() {
         key={`${snapshot.vaultPath}:${i}`}
         path={p}
         value={files[p] || ""}
-        readOnly={busy || !ready}
+        readOnly={busy || !ready || p !== panes[i]?.active}
+        onSelectionChange={(value) => {
+          if (i === paneIndex && p === panes[i]?.active) setSelection(value);
+        }}
+        onPasteFiles={(dropped, selected) =>
+          run(() => importAttachments(dropped, p, i, selected))
+        }
         mode={mode}
         commands={commandItems.map(([name, , action]) => ({
           name,
@@ -1256,11 +1594,7 @@ export default function App() {
         onNavigate={(link) => navigate(link, p, i)}
         resolveAsset={(path) =>
           bridge.assetUrl(
-            resolveLink(
-              path,
-              p,
-              snapshot.files.map((f) => f.path),
-            ) || path,
+            resolveLink(path, p, linkIndex) || path,
           )
         }
         onReady={(api) => {
@@ -1270,8 +1604,57 @@ export default function App() {
     );
   };
 
+  function paneContent(pane, i) {
+    const path = pane.active,
+      key = snapshot.vaultPath + ":" + i;
+    const text =
+      path &&
+      isText(path) &&
+      !path.endsWith(".canvas") &&
+      !path.endsWith(".base");
+    if (text) lastTextPaths.current[key] = path;
+    const remembered = lastTextPaths.current[key];
+    return (
+      <>
+        <div className="kept-pane" style={{ display: text ? "block" : "none" }}>
+          {remembered && files[remembered] !== undefined
+            ? view(remembered, i)
+            : text
+              ? view(path, i)
+              : null}
+        </div>
+        {pane.tabs
+          .filter((p) => p.startsWith("@web:"))
+          .map((p) => (
+            <div
+              className="kept-pane"
+              key={`${snapshot.vaultPath}:${p}`}
+              style={{ display: path === p ? "block" : "none" }}
+            >
+              <WebViewer
+                url={p.slice(5)}
+                visible={path === p && !dialog && !busy && ready}
+              />
+            </div>
+          ))}
+        {!text && !path?.startsWith("@web:") && view(path, i)}
+      </>
+    );
+  }
   return (
-    <div className="app" aria-busy={busy}>
+    <div
+      className="app"
+      aria-busy={busy}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (e.dataTransfer.files.length) {
+          e.preventDefault();
+          run(() => importAttachments([...e.dataTransfer.files]));
+        }
+      }}
+    >
       <div className="titlebar">
         <div className="brand">
           <span className="gem">◇</span>
@@ -1417,7 +1800,26 @@ export default function App() {
                     />
                   </div>
                 </div>
-                <div className="sidebar-scroll">{fileTree()}</div>
+                <FileTree
+                  files={snapshot.files}
+                  active={active}
+                  collapsed={collapsed}
+                  sort={settings.fileSort}
+                  onOpen={open}
+                  onToggle={(path) =>
+                    setCollapsed((value) => {
+                      const next = new Set(value);
+                      next.has(path) ? next.delete(path) : next.add(path);
+                      return next;
+                    })
+                  }
+                  onMenu={(path, folder) =>
+                    setDialog({ type: "filemenu", path, folder })
+                  }
+                  onMove={(path, target) =>
+                    run(() => rename(target, undefined, path))
+                  }
+                />
               </>
             )}
             {leftTab === "search" && (
@@ -1439,7 +1841,17 @@ export default function App() {
                     <button
                       key={p || i}
                       className="search-result"
-                      onClick={() => open(p)}
+                      onClick={() => {
+                        open(p);
+                        if (r.line != null)
+                          setTimeout(
+                            () =>
+                              editors.current[paneIndex]?.scrollToLine?.(
+                                r.line + 1,
+                              ),
+                            120,
+                          );
+                      }}
                     >
                       <b>{title(p)}</b>
                       <small>
@@ -1477,15 +1889,23 @@ export default function App() {
             {leftTab === "bookmarks" && (
               <div className="sidebar-scroll">
                 <div className="section-caption">书签</div>
-                {bookmarks.map((p) => (
-                  <button className="tree-row" key={p} onClick={() => open(p)}>
-                    <Bookmark size={15} />
-                    {title(p)}
-                  </button>
-                ))}
-                {!bookmarks.length && (
-                  <p className="muted padded">使用笔记右上方菜单添加书签。</p>
-                )}
+                <BookmarksPanel
+                  items={bookmarks}
+                  onChange={setBookmarks}
+                  files={allFiles}
+                  activePath={active?.startsWith("@") ? "" : active}
+                  searchQuery={query}
+                  onOpen={(item) => {
+                    if (item.type === "search") {
+                      setQuery(item.query);
+                      setLeftTab("search");
+                    } else if (item.type === "url")
+                      bridge
+                        .openExternal(item.url)
+                        .catch((e) => notify(e.message));
+                    else openExact(item.path, item.subpath || "");
+                  }}
+                />
               </div>
             )}
             <button className="vault-switch" onClick={() => run(openVault)}>
@@ -1504,7 +1924,11 @@ export default function App() {
             </button>
           </aside>
         )}
-        <main className="panes">
+        <main
+          className={
+            "panes" + (splitDirection === "vertical" ? " vertical-split" : "")
+          }
+        >
           {panes.map((pane, i) => (
             <section
               className={"pane" + (paneIndex === i ? " focused" : "")}
@@ -1525,6 +1949,46 @@ export default function App() {
                     <button
                       key={p}
                       className={"tab" + (p === pane.active ? " selected" : "")}
+                      draggable
+                      onDragStart={(e) =>
+                        e.dataTransfer.setData(
+                          "application/x-vaultdesk-tab",
+                          JSON.stringify({ path: p, from: i }),
+                        )
+                      }
+                      onDragOver={(e) => {
+                        if (
+                          e.dataTransfer.types.includes(
+                            "application/x-vaultdesk-tab",
+                          )
+                        )
+                          e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        if (
+                          !e.dataTransfer.types.includes(
+                            "application/x-vaultdesk-tab",
+                          )
+                        )
+                          return;
+                        e.preventDefault();
+                        const item = JSON.parse(
+                          e.dataTransfer.getData("application/x-vaultdesk-tab"),
+                        );
+                        setPanes((ps) =>
+                          moveTab(
+                            ps,
+                            item.from,
+                            item.path,
+                            i,
+                            pane.tabs.indexOf(p),
+                          ),
+                        );
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setDialog({ type: "tabmenu", path: p, pane: i });
+                      }}
                       onClick={() => open(p, i)}
                     >
                       <span>
@@ -1541,8 +2005,13 @@ export default function App() {
                           ? "局部图谱"
                           : p === "@graph"
                             ? "关系图谱"
-                            : title(p)}
+                            : p.startsWith("@web:")
+                              ? p.slice(5)
+                              : title(p)}
                       </span>
+                      {(pane.pinned || []).includes(p) && (
+                        <span title="已固定">◆</span>
+                      )}
                       {dirty.current.has(p) && <i className="dirty-dot" />}
                       <span
                         className="tab-close"
@@ -1638,7 +2107,7 @@ export default function App() {
                   />
                 </div>
               </div>
-              <div className="document-view">{view(pane.active, i)}</div>
+              <div className="document-view">{paneContent(pane, i)}</div>
             </section>
           ))}
         </main>
@@ -1820,11 +2289,26 @@ export default function App() {
             处理冲突
           </button>
         )}
-        <span>{content.length} 字符</span>
-        <span>{content.trim().split(/\s+/).filter(Boolean).length} 词</span>
+        <span>
+          {selection.text
+            ? `选区 ${selection.characters ?? Array.from(selection.text).length} 字符`
+            : `${Array.from(content).length} 字符`}
+        </span>
+        <span>
+          {selection.text
+            ? selection.words
+            : content.trim().split(/\s+/).filter(Boolean).length}{" "}
+          词
+        </span>
         <button onClick={() => run(syncNow)} title="立即同步">
           <Cloud size={13} />
-          {syncing ? "同步中" : "自托管同步"}
+          {syncing
+            ? "同步中"
+            : syncStatus.paused
+              ? "同步已暂停"
+              : syncStatus.phase === "offline"
+                ? "离线重试中"
+                : "自托管同步"}
         </button>
       </footer>
       {notice && (
@@ -1842,8 +2326,132 @@ export default function App() {
     </div>
   );
 
+  async function applyConversions(changes) {
+    if (busyRef.current) throw Error("另一个文件操作正在进行");
+    busyRef.current = true;
+    setBusy(true);
+    let count = 0;
+    try {
+      await flush();
+      const checked = [];
+      for (const row of changes) {
+        if (!row.path.endsWith(".md") || !allPaths.includes(row.path))
+          throw Error("只能转换当前库中的 Markdown 文件");
+        const disk = await bridge.read(row.path);
+        if (disk.content !== row.before)
+          throw Error(row.path + " 在预览后已变化，请重新预览");
+        checked.push({ ...row, mtime: disk.mtime, version: disk.version });
+      }
+      for (const row of checked) {
+        await bridge.write(row.path, row.after, row.mtime, row.version);
+        count++;
+      }
+      contentEpoch.current++;
+      await refresh();
+      notify(`已转换 ${count} 个文件，原文可从版本历史恢复`);
+    } catch (error) {
+      if (count) {
+        contentEpoch.current++;
+        await refresh().catch(() => {});
+        throw Error(`已转换 ${count} 个文件后中止：${error.message}`);
+      }
+      throw error;
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
   function renderDialog() {
     const close = () => setDialog(null);
+    if (dialog.type === "convert")
+      return (
+        <Dialog title="Markdown 格式转换" onClose={close} wide>
+          <MarkdownConverterDialog
+            files={files}
+            initialPaths={active?.endsWith(".md") ? [active] : []}
+            readFile={async (path) =>
+              fileRef.current[path] ?? (await bridge.read(path)).content
+            }
+            onApply={applyConversions}
+            onClose={close}
+          />
+        </Dialog>
+      );
+
+    if (dialog.type === "weburl")
+      return (
+        <InputDialog
+          heading="打开网页标签"
+          initial="https://"
+          description="输入完整 HTTP 或 HTTPS 地址。"
+          onClose={close}
+          onSubmit={(value) => {
+            try {
+              const url = new URL(value);
+              if (
+                !["https:", "http:"].includes(url.protocol) ||
+                url.username ||
+                url.password
+              )
+                throw Error("请输入有效的 HTTP/HTTPS 地址");
+              open("@web:" + url.href);
+              close();
+            } catch (e) {
+              notify(e.message);
+            }
+          }}
+        />
+      );
+    if (dialog.type === "tabmenu")
+      return (
+        <Dialog title="标签操作" onClose={close}>
+          <div className="action-menu">
+            <button
+              onClick={() => {
+                togglePin(dialog.path, dialog.pane);
+                close();
+              }}
+            >
+              固定 / 取消固定
+            </button>
+            <button
+              onClick={() => {
+                setPanes((ps) =>
+                  [...ps, { tabs: [dialog.path], active: dialog.path }].slice(
+                    0,
+                    4,
+                  ),
+                );
+                setPaneIndex(Math.min(panes.length, 3));
+                close();
+              }}
+            >
+              在新分屏中打开
+            </button>
+            <button
+              onClick={() =>
+                run(async () => {
+                  await flush();
+                  await bridge.saveWorkspace(workspace);
+                  await bridge.newWindow({ path: dialog.path });
+                  close();
+                })
+              }
+            >
+              在新窗口中打开
+            </button>
+            <button
+              onClick={() => {
+                closeTab(dialog.path, dialog.pane);
+                close();
+              }}
+            >
+              关闭标签
+            </button>
+          </div>
+        </Dialog>
+      );
+
     if (dialog.type === "composer")
       return (
         <Dialog title="笔记重组" onClose={close} wide>
@@ -1891,7 +2499,15 @@ export default function App() {
       return (
         <Palette
           kind={dialog.type}
-          files={files}
+          files={allFiles}
+          metadata={indexed}
+          onCreate={(name) =>
+            setDialog({
+              type: "create",
+              value: /\.md$/i.test(name) ? name : name + ".md",
+              text: "",
+            })
+          }
           recent={recent}
           commands={commandItems}
           templateFolder={settings.templateFolder}
@@ -1900,10 +2516,10 @@ export default function App() {
             close();
             if (dialog.type === "commands") item[2]();
             else if (dialog.type === "templates") {
-              const text = (files[item] || "")
-                .replaceAll("{{date}}", date())
-                .replaceAll("{{time}}", new Date().toLocaleTimeString())
-                .replaceAll("{{title}}", title(active));
+              const text = applyTemplate(files[item] || "", {
+                title: title(active),
+                timeFormat: settings.timeFormat,
+              });
               editors.current[paneIndex]?.insert?.(text);
             } else open(item);
           }}
@@ -1940,16 +2556,14 @@ export default function App() {
               <>
                 <button
                   onClick={() => {
-                    setBookmarks((b) =>
-                      b.includes(dialog.path)
-                        ? b.filter((p) => p !== dialog.path)
-                        : [...b, dialog.path],
-                    );
+                    setBookmarks((b) => toggleFileBookmark(b, dialog.path));
                     close();
                   }}
                 >
                   <Bookmark size={17} />
-                  {bookmarks.includes(dialog.path) ? "移除书签" : "添加书签"}
+                  {hasFileBookmark(bookmarks, dialog.path)
+                    ? "移除书签"
+                    : "添加书签"}
                 </button>
                 <button
                   onClick={() =>
@@ -2099,37 +2713,25 @@ export default function App() {
     if (dialog.type === "history")
       return (
         <Dialog title={"版本恢复 · " + title(dialog.path)} onClose={close} wide>
-          <div className="history-list">
-            {!dialog.items?.length && (
-              <p>尚无历史版本。修改并保存后会自动留下快照。</p>
-            )}
-            {(dialog.items || []).map((v, i) => (
-              <div className="history-item" key={v.id || i}>
-                <span>
-                  <b>
-                    {new Date(
-                      v.mtime || v.timestamp || v.created_at || Number(v.id),
-                    ).toLocaleString()}
-                  </b>
-                  <small>{v.size || v.content?.length || ""} 字符 / 字节</small>
-                </span>
-                <button
-                  onClick={() =>
-                    run(async () => {
-                      await flush();
-                      clearTimeout(timers.current.get(dialog.path));
-                      await bridge.restoreHistory(dialog.path, v.id);
-                      await refresh();
-                      close();
-                      notify("历史版本已恢复");
-                    })
-                  }
-                >
-                  恢复此版本
-                </button>
-              </div>
-            ))}
-          </div>
+          <HistoryPanel
+            path={dialog.path}
+            items={dialog.items || []}
+            current={files[dialog.path] || ""}
+            readVersion={(path, id) =>
+              bridge.readHistory
+                ? bridge.readHistory(path, id)
+                : Promise.resolve((dialog.items || []).find((v) => v.id === id))
+            }
+            onRestore={(id) =>
+              run(async () => {
+                await flush();
+                await bridge.restoreHistory(dialog.path, id);
+                await refresh();
+                close();
+                notify("历史版本已恢复");
+              })
+            }
+          />
         </Dialog>
       );
     if (dialog.type === "settings")
@@ -2154,6 +2756,8 @@ export default function App() {
           active={active}
           cloudCall={cloudCall}
           syncNow={syncNow}
+          syncStatus={syncStatus}
+          syncProgress={syncProgress}
           notify={notify}
           run={run}
           onClose={close}
@@ -2175,6 +2779,7 @@ export default function App() {
                   right,
                   leftTab,
                   rightTab,
+                  splitDirection,
                   mode,
                 },
               }))
@@ -2190,15 +2795,7 @@ export default function App() {
               await flush();
               const w = workspaces[name];
               if (!w) return;
-              const ps = w.panes.map((p) => {
-                const tabs = p.tabs.filter(
-                  (t) => t.startsWith("@") || allPaths.includes(t),
-                );
-                return {
-                  tabs,
-                  active: tabs.includes(p.active) ? p.active : tabs[0] || null,
-                };
-              });
+              const ps = restorePanes(w.panes, allPaths);
               setPanes(ps.length ? ps : [{ tabs: [], active: null }]);
               setPaneIndex(
                 Math.min(w.paneIndex || 0, Math.max(0, ps.length - 1)),
@@ -2207,6 +2804,7 @@ export default function App() {
               setRight(w.right !== false);
               setLeftTab(w.leftTab || "files");
               setRightTab(w.rightTab || "outline");
+              setSplitDirection(w.splitDirection || "horizontal");
               setMode(w.mode || "live");
             }}
           />
@@ -2245,11 +2843,13 @@ export default function App() {
       );
     if (dialog.type === "slides")
       return (
-        <Slides
+        <DesktopSlides
           text={content}
-          files={files}
+          path={active}
+          files={allFiles}
+          resolveAsset={(path) => bridge.assetUrl(path)}
           onClose={close}
-          navigate={navigate}
+          onNavigate={navigate}
         />
       );
     return null;
@@ -2297,6 +2897,8 @@ function Palette({
   recent,
   commands,
   templateFolder,
+  metadata = {},
+  onCreate,
   onSelect,
   onClose,
 }) {
@@ -2315,11 +2917,15 @@ function Palette({
               ...Object.keys(files),
             ]),
           ];
-  const filtered = entries.filter((item) =>
-    (Array.isArray(item) ? item[0] : item)
-      .toLowerCase()
-      .includes(q.toLowerCase()),
-  );
+  const filtered = entries.filter((item) => {
+    const text = Array.isArray(item) ? item[0] : item;
+    if (text.toLowerCase().includes(q.toLowerCase())) return true;
+    if (kind !== "quick" || Array.isArray(item)) return false;
+    const aliases = metadata[item]?.meta?.frontmatter?.aliases;
+    return (Array.isArray(aliases) ? aliases : aliases ? [aliases] : []).some(
+      (alias) => String(alias).toLowerCase().includes(q.toLowerCase()),
+    );
+  });
   return (
     <Dialog
       title={
@@ -2352,6 +2958,8 @@ function Palette({
             }
             if (e.key === "Enter" && filtered[selection])
               onSelect(filtered[selection]);
+            else if (e.key === "Enter" && kind === "quick" && q.trim())
+              onCreate?.(q.trim());
           }}
         />
         <div className="palette-results">
@@ -2376,7 +2984,14 @@ function Palette({
               <kbd>{Array.isArray(item) ? item[1] : ""}</kbd>
             </button>
           ))}
-          {!filtered.length && <p className="padded muted">没有匹配结果</p>}
+          {!filtered.length &&
+            (kind === "quick" && q.trim() ? (
+              <button className="padded" onClick={() => onCreate?.(q.trim())}>
+                创建笔记「{q.trim()}」
+              </button>
+            ) : (
+              <p className="padded muted">没有匹配结果</p>
+            ))}
         </div>
         <footer>
           ↑↓ 选择 <span>↵ 打开</span>
@@ -2510,6 +3125,8 @@ function SettingsDialog({
   active,
   cloudCall,
   syncNow,
+  syncStatus,
+  syncProgress,
   notify,
   run,
   onClose,
@@ -2636,6 +3253,16 @@ function SettingsDialog({
           {tab === "files" && (
             <>
               <h3>文件与链接</h3>
+              <Setting title="文件排序">
+                <select
+                  value={settings.fileSort || "name-asc"}
+                  onChange={(e) => update("fileSort", e.target.value)}
+                >
+                  <option value="name-asc">名称升序</option>
+                  <option value="name-desc">名称降序</option>
+                  <option value="modified">最近修改</option>
+                </select>
+              </Setting>
               <Setting
                 title="自动更新内部链接"
                 note="重命名或移动时保留原引用目标"
@@ -2671,6 +3298,42 @@ function SettingsDialog({
                   onChange={(e) => update("dailyFolder", e.target.value)}
                 />
               </Setting>
+              <Setting title="日期格式">
+                <input
+                  value={settings.dailyFormat}
+                  onChange={(e) => update("dailyFormat", e.target.value)}
+                />
+              </Setting>
+              <Setting title="每日模板文件">
+                <input
+                  value={settings.dailyTemplate}
+                  onChange={(e) => update("dailyTemplate", e.target.value)}
+                />
+              </Setting>
+              <Setting title="时间格式">
+                <input
+                  value={settings.timeFormat}
+                  onChange={(e) => update("timeFormat", e.target.value)}
+                />
+              </Setting>
+              <Setting title="唯一笔记格式">
+                <input
+                  value={settings.uniqueFormat}
+                  onChange={(e) => update("uniqueFormat", e.target.value)}
+                />
+              </Setting>
+              <Setting title="唯一笔记目录">
+                <input
+                  value={settings.uniqueFolder}
+                  onChange={(e) => update("uniqueFolder", e.target.value)}
+                />
+              </Setting>
+              <Setting title="唯一笔记模板文件">
+                <input
+                  value={settings.uniqueTemplate}
+                  onChange={(e) => update("uniqueTemplate", e.target.value)}
+                />
+              </Setting>
               <Setting title="模板目录">
                 <input
                   value={settings.templateFolder}
@@ -2688,13 +3351,14 @@ function SettingsDialog({
               <h3>自己的云服务</h3>
               <p className="settings-note">
                 连接你部署的 VaultDesk
-                服务。同步为显式操作，账号令牌仅在本次会话中保留。
+                服务。可手动或自动同步，账号令牌仅在本次会话中保留。
               </p>
               <label>
                 服务地址
                 <input
                   value={cloud.baseUrl}
                   onChange={(e) => {
+                    bridge.syncPause?.().catch(() => {});
                     setCloud({
                       baseUrl: e.target.value,
                       token: "",
@@ -2767,6 +3431,86 @@ function SettingsDialog({
                       退出
                     </button>
                   </div>
+                  <h4>自动与选择性同步</h4>
+                  <Setting title="自动同步">
+                    <input
+                      type="checkbox"
+                      checked={!!cloud.autoSync}
+                      onChange={(e) =>
+                        setCloud((c) => ({ ...c, autoSync: e.target.checked }))
+                      }
+                    />
+                  </Setting>
+                  <Setting title="暂停同步">
+                    <input
+                      type="checkbox"
+                      checked={!!cloud.paused}
+                      onChange={(e) =>
+                        setCloud((c) => ({ ...c, paused: e.target.checked }))
+                      }
+                    />
+                  </Setting>
+                  <label>
+                    排除目录（每行一个）
+                    <textarea
+                      aria-label="同步排除目录"
+                      value={(cloud.excludeFolders || []).join("\n")}
+                      onChange={(e) =>
+                        setCloud((c) => ({
+                          ...c,
+                          excludeFolders: e.target.value
+                            .split("\n")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    附件类型
+                    <select
+                      aria-label="附件同步类型"
+                      value={
+                        Array.isArray(cloud.attachmentTypes)
+                          ? "custom"
+                          : cloud.attachmentTypes || "all"
+                      }
+                      onChange={(e) =>
+                        setCloud((c) => ({
+                          ...c,
+                          attachmentTypes:
+                            e.target.value === "custom"
+                              ? ["pdf", "png", "jpg"]
+                              : e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="all">所有附件</option>
+                      <option value="none">仅笔记</option>
+                      <option value="custom">指定扩展名</option>
+                    </select>
+                  </label>
+                  {Array.isArray(cloud.attachmentTypes) && (
+                    <input
+                      aria-label="同步附件扩展名"
+                      value={cloud.attachmentTypes.join(",")}
+                      onChange={(e) =>
+                        setCloud((c) => ({
+                          ...c,
+                          attachmentTypes: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                    />
+                  )}
+                  <p className="settings-note">
+                    状态：{syncStatus?.phase || "idle"}
+                    {syncStatus?.lastError ? " · " + syncStatus.lastError : ""}
+                    {syncProgress?.path ? " · " + syncProgress.path : ""}
+                    。同步前会等待同库各窗口保存；排除内容保留远端数据。
+                  </p>
                   <h4>远程知识库</h4>
                   <div className="button-row">
                     <button onClick={loadVaults}>刷新列表</button>
@@ -2928,7 +3672,7 @@ function SettingsDialog({
           {tab === "about" && (
             <>
               <div className="about-mark">◇</div>
-              <h3>VaultDesk 0.1.0</h3>
+              <h3>VaultDesk 0.2.0</h3>
               <p>
                 基于 Obsidian 1.13.7 的 REA 行为研究构建的独立本地笔记应用。
               </p>
@@ -2951,13 +3695,16 @@ function SettingsDialog({
   );
 }
 function Setting({ title: label, note, children }) {
+  const id = useId();
+  const control = React.isValidElement(children) &&
+    ["input", "select", "textarea"].includes(children.type);
   return (
     <div className="setting-row">
-      <span>
+      <label htmlFor={control ? id : undefined}>
         <b>{label}</b>
         {note && <small>{note}</small>}
-      </span>
-      {children}
+      </label>
+      {control ? React.cloneElement(children, { id }) : children}
     </div>
   );
 }

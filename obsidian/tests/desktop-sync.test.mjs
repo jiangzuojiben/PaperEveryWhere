@@ -6,6 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { VaultStore } from '../desktop/vault-store.mjs';
 import { cloudRequest, syncVault } from '../desktop/sync.mjs';
+import { listenForFetch } from './helpers/http-listener.mjs';
 
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'vaultdesk-sync-'));
@@ -41,7 +42,7 @@ async function fixture(t) {
       response.end(JSON.stringify(event));
     } catch (error) { response.statusCode = 500; response.end(JSON.stringify({ message: error.message })); }
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await listenForFetch(server);
   t.after(async () => {
     for (const store of stores) store.close();
     await new Promise((resolve) => server.close(resolve));

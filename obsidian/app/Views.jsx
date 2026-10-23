@@ -1,12 +1,14 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Network, Search, Plus, Minus, Maximize, X, Settings2, FileText, Link2, Type, Square, Trash2, Code2, Table2, ArrowDown, ArrowUp, GripVertical, ExternalLink, Check, AlertCircle, CornerDownRight } from 'lucide-react';
-import { basename, graphData, layoutGraph, parseCanvas, canvasAnchor, canvasColor, makeId, parseBase, serializeBase, baseRecords, propertyValue, matchesBaseFilter, displayValue, frontmatterDocument, writeFrontmatter } from './views-model.mjs';
+import { basename, graphData, layoutGraph, parseCanvas, canvasAnchor, canvasColor, makeId, parseBase, serializeBase, baseRecords, propertyValue, matchesBaseFilter, displayValue, frontmatterDocument, writeFrontmatter, sortBaseRecords, groupBaseRecords, summarizeBaseValues, updateBaseProperty, parseBaseExpression, baseValueType } from './views-model.mjs';
+import { resolveLink } from '../core/vault.mjs';
 import { renderMarkdown, hydrateMarkdown } from './markdown.js';
 import 'katex/dist/katex.min.css';
 import './views.css';
 
 const IconButton = ({ label, children, ...props }) => <button type="button" className="vd-icon-button" title={label} aria-label={label} {...props}>{children}</button>;
 const Empty = ({ children }) => <div className="vd-view-empty">{children}</div>;
+const emptyMetadata = Object.freeze({});
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const safeUrl = value => { try { const url = new URL(value); return /^(https?:|mailto:)$/.test(url.protocol) && !url.username && !url.password ? url.href : null; } catch { return null; } };
 const safeAssetUrl = value => {
@@ -278,64 +280,179 @@ export function CanvasView({ value = '', onChange, onOpen, onNavigate, resolveAs
 }
 
 function baseConfigurationError(config) {
+  const object = value => value && typeof value === 'object' && !Array.isArray(value);
   if (config.views !== undefined && !Array.isArray(config.views)) return 'views 必须是视图数组';
   for (const view of config.views || []) {
-    if (!view || typeof view !== 'object' || Array.isArray(view)) return '每个视图必须是 YAML 对象';
+    if (!object(view)) return '每个视图必须是 YAML 对象';
     if (view.name !== undefined && typeof view.name !== 'string') return '视图名称必须是文本';
     if (view.type !== undefined && typeof view.type !== 'string') return '视图类型必须是文本';
     if (view.order !== undefined && (!Array.isArray(view.order) || view.order.some(column => typeof column !== 'string' || !column.trim()))) return 'order 必须是属性名称数组';
-    if (view.sort !== undefined && (!Array.isArray(view.sort) || view.sort.some(item => !item || typeof item.property !== 'string'))) return 'sort 必须包含有效的 property 属性名';
+    if (view.sort !== undefined && (!Array.isArray(view.sort) || view.sort.some(item => !object(item) || typeof item.property !== 'string' || item.direction && !['ASC', 'DESC'].includes(item.direction)))) return 'sort 必须包含属性名及 ASC / DESC 方向';
+    if (view.groupBy !== undefined && (!object(view.groupBy) || typeof view.groupBy.property !== 'string' || view.groupBy.direction && !['ASC', 'DESC'].includes(view.groupBy.direction))) return 'groupBy 必须包含属性名及 ASC / DESC 方向';
+    if (view.groupOrder !== undefined && !Array.isArray(view.groupOrder)) return 'groupOrder 必须是分组值数组';
+    if (view.limit !== undefined && (!Number.isInteger(view.limit) || view.limit < 0)) return 'limit 必须是非负整数';
+    if (view.summaries !== undefined && (!object(view.summaries) || Object.values(view.summaries).some(name => typeof name !== 'string'))) return '视图 summaries 必须将属性映射到汇总名称';
   }
-  if (config.properties && (typeof config.properties !== 'object' || Array.isArray(config.properties))) return 'properties 必须是属性配置对象';
+  for (const key of ['formulas', 'summaries']) if (config[key] !== undefined && (!object(config[key]) || Object.values(config[key]).some(expression => typeof expression !== 'string'))) return key + ' 必须将名称映射到表达式文本';
+  if (config.properties !== undefined && !object(config.properties)) return 'properties 必须是属性配置对象';
   if (config.properties && Object.values(config.properties).some(property => property?.displayName !== undefined && typeof property.displayName !== 'string')) return '属性显示名称必须是文本';
   return '';
 }
 
-export function BasesView({ value = '', onChange, files = {}, onOpen }) {
-  const { config, error: parseError } = useMemo(() => parseBase(value), [value]);
-  const error = parseError || baseConfigurationError(config);
-  const [selectedView, setSelectedView] = useState(0), [search, setSearch] = useState(''), [sort, setSort] = useState(null), [source, setSource] = useState(false), [sourceText, setSourceText] = useState(value), [sourceError, setSourceError] = useState('');
-  const [showFilter, setShowFilter] = useState(false), [filterProperty, setFilterProperty] = useState('file.name'), [filterOperator, setFilterOperator] = useState('contains'), [filterValue, setFilterValue] = useState('');
-  const validViews = Array.isArray(config.views) ? config.views.filter(view => view && typeof view === 'object' && !Array.isArray(view)) : [];
-  const views = validViews.length ? validViews : [{ type: 'table', name: '表格' }];
-  const current = views[Math.min(selectedView, views.length - 1)] || views[0];
-  const records = useMemo(() => baseRecords(files), [files]);
-  const properties = useMemo(() => [...new Set(['file.name', 'file.folder', 'file.ext', ...records.flatMap(record => Object.keys(record.props))])], [records]);
-  const columns = Array.isArray(current.order) && current.order.length ? [...new Set(current.order.filter(column => typeof column === 'string' && column.trim()))] : ['file.name', ...properties.filter(p => !p.startsWith('file.')).slice(0, 5), 'file.folder'];
+function BaseImage({ value, resolveAsset, sourcePath, files }) {
+  const [url, setUrl] = useState(''), [failure, setFailure] = useState('');
+  useEffect(() => {
+    let live = true; setUrl(''); setFailure('');
+    const path = value.path, remote = safeAssetUrl(path);
+    Promise.resolve().then(() => remote || (resolveAsset && resolveAsset(resolveLink(path, sourcePath, Object.keys(files)) || path))).then(result => { if (live) { const safe = safeAssetUrl(result); if (safe) setUrl(safe); else setFailure('图片地址不可用'); } }).catch(error => { if (live) setFailure(error.message); });
+    return () => { live = false; };
+  }, [value.path, resolveAsset, sourcePath, files]);
+  return url ? <img className="vd-base-image" src={url} alt={value.display || value.path} onError={() => { setFailure('无法显示图片'); setUrl(''); }} /> : <span className="vd-muted" title={failure || value.path}>{failure || '加载图片…'}</span>;
+}
+
+function BaseValue({ value, record, onOpen, onNavigate, resolveAsset, files }) {
+  const kind = baseValueType(value);
+  const navigate = target => {
+    const url = safeUrl(target);
+    if (url) { if (window.vaultdesk?.openExternal) window.vaultdesk.openExternal(url).catch(() => {}); else window.open(url, '_blank', 'noopener,noreferrer'); return; }
+    if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target)) return;
+    if (onNavigate) onNavigate(target, record.path);
+    else { const found = resolveLink(target, record.path, Object.keys(files)); if (found) onOpen?.(found); }
+  };
+  if (kind === 'link' || typeof value === 'string' && /^\[\[[\s\S]+\]\]$/.test(value)) {
+    const raw = typeof value === 'string' ? value.slice(2, -2) : String(value.path).replace(/^\[\[|\]\]$/g, '');
+    const [target, alias] = raw.split('|'), label = typeof value === 'string' ? alias || target : value.display || alias || target;
+    return <button className="vd-base-file" onClick={() => navigate(target)} title={target}><Link2 size={13} />{label}</button>;
+  }
+  if (kind === 'image') return <BaseImage value={value} resolveAsset={resolveAsset} sourcePath={record.path} files={files} />;
+  if (kind === 'html') return <div className="vd-base-html"><CanvasMarkdown text={value.path} path={record.path} files={files} resolveAsset={resolveAsset} onNavigate={navigate} onExternal={navigate} /></div>;
+  if (kind === 'icon') {
+    const Icon = ({ 'file-text': FileText, 'link': Link2, 'check': Check, 'x': X, 'plus': Plus, 'minus': Minus, 'search': Search, 'table': Table2, 'arrow-down': ArrowDown, 'arrow-up': ArrowUp, 'external-link': ExternalLink, 'square': Square, 'network': Network, 'alert-circle': AlertCircle, 'code': Code2 })[value.path];
+    return Icon ? <Icon size={17} aria-label={value.path} /> : <span className="vd-muted" title="此图标尚未收录">{value.path}</span>;
+  }
+  if (Array.isArray(value)) return <span className="vd-base-tags">{value.map((item, index) => <span key={index}><BaseValue value={item} record={record} onOpen={onOpen} onNavigate={onNavigate} resolveAsset={resolveAsset} files={files} /></span>)}</span>;
+  if (typeof value === 'boolean') return <input type="checkbox" checked={value} readOnly aria-label={String(value)} />;
+  return <span title={displayValue(value)}>{displayValue(value) || <span className="vd-muted">—</span>}</span>;
+}
+
+const cellType = value => Array.isArray(value) ? 'list' : typeof value === 'boolean' ? 'checkbox' : typeof value === 'number' ? 'number' : value && typeof value === 'object' ? 'json' : /^\d{4}-\d{2}-\d{2}T/.test(value || '') ? 'datetime' : /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? 'date' : 'text';
+function BaseCell({ record, column, cell, editable, onSave, ...renderProps }) {
+  const rawValue = record.props[column.replace(/^note\./, '')], [editing, setEditing] = useState(false), [draft, setDraft] = useState(''), [type, setType] = useState('text'), [error, setError] = useState(''), [saving, setSaving] = useState(false);
+  const begin = () => { if (!editable) return; const next = cellType(rawValue); setType(next); setDraft(next === 'list' || next === 'json' ? JSON.stringify(rawValue) : displayValue(rawValue)); setError(''); setEditing(true); };
+  const commit = async (forced, useForced = false) => {
+    try {
+      let next = forced;
+      if (!useForced) {
+        if (type === 'number') { next = draft.trim() === '' ? null : Number(draft); if (next !== null && !Number.isFinite(next)) throw new Error('请输入有效数字。'); }
+        else if (type === 'checkbox') next = draft === 'true';
+        else if (type === 'list' || type === 'json') { next = JSON.parse(draft || (type === 'list' ? '[]' : '{}')); if (type === 'list' && !Array.isArray(next)) throw new Error('列表需要 JSON 数组，例如 ["标签一","标签二"]。'); }
+        else next = draft;
+      }
+      setSaving(true); await onSave(record, column, next); setEditing(false); setError('');
+    } catch (failure) { setError(failure.message); }
+    finally { setSaving(false); }
+  };
+  if (editing) return <div className="vd-base-cell-editor" onKeyDown={event => { if (event.key === 'Escape') setEditing(false); if (event.key === 'Enter' && (type !== 'json' && type !== 'list' || event.ctrlKey || event.metaKey)) { event.preventDefault(); commit(); } }}>
+    <select aria-label={'单元格类型 ' + column} value={type} onChange={event => { const next = event.target.value; setType(next); if (next === 'list') setDraft(JSON.stringify(Array.isArray(rawValue) ? rawValue : rawValue == null ? [] : [rawValue])); if (next === 'json') setDraft(JSON.stringify(rawValue ?? {})); if (next === 'checkbox') setDraft(rawValue === true ? 'true' : 'false'); }}>
+      <option value="text">文本</option><option value="number">数字</option><option value="checkbox">复选框</option><option value="list">列表</option><option value="date">日期</option><option value="datetime">日期时间</option><option value="json">JSON</option>
+    </select>
+    {type === 'checkbox' ? <select aria-label={'单元格值 ' + column} value={draft} onChange={event => setDraft(event.target.value)}><option value="false">false</option><option value="true">true</option></select> : <input autoFocus type={type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'datetime' ? 'datetime-local' : 'text'} aria-label={'单元格值 ' + column} value={draft} onChange={event => setDraft(event.target.value)} />}
+    <IconButton label="保存单元格" disabled={saving} onClick={() => commit()}><Check size={14} /></IconButton><IconButton label="取消单元格编辑" disabled={saving} onClick={() => setEditing(false)}><X size={14} /></IconButton>{error && <small className="vd-error">{error}</small>}
+  </div>;
+  if (cell.error) return <span className="vd-base-cell-error" title={cell.error}>⚠ {cell.error}</span>;
+  if (column === 'file.name' || column === 'file.path') return <button className="vd-base-file" onClick={() => renderProps.onOpen?.(record.path)} title={record.path}><FileText size={14} />{displayValue(cell.value)}</button>;
+  if (editable && typeof rawValue === 'boolean') return <span className="vd-base-checkbox"><input type="checkbox" checked={rawValue} disabled={saving} aria-label={'编辑 ' + record.path + ' ' + column} onChange={event => commit(event.target.checked, true)} />{error && <small className="vd-error">{error}</small>}</span>;
+  return <div className={'vd-base-cell-content' + (editable ? ' editable' : '')} onDoubleClick={begin}><BaseValue value={cell.value} record={record} {...renderProps} />{editable && <button className="vd-base-edit-cell" aria-label={'编辑 ' + record.path + ' ' + column} title="编辑属性" onClick={begin}>✎</button>}{error && <small className="vd-error">{error}</small>}</div>;
+}
+
+export function BasesView({ value = '', onChange, files = {}, onOpen, onEditFile, path = '', metadata = emptyMetadata, onNavigate, resolveAsset }) {
+  const { config, error: parseError } = useMemo(() => parseBase(value), [value]), error = parseError || baseConfigurationError(config);
+  const [selectedView, setSelectedView] = useState(0), [search, setSearch] = useState(''), [source, setSource] = useState(false), [sourceText, setSourceText] = useState(value), [sourceError, setSourceError] = useState('');
+  const [panel, setPanel] = useState(''), [filterProperty, setFilterProperty] = useState('file.name'), [filterOperator, setFilterOperator] = useState('contains'), [filterValue, setFilterValue] = useState(''), [filterScope, setFilterScope] = useState('view'), [filterLogic, setFilterLogic] = useState('and');
+  const [newColumn, setNewColumn] = useState(''), [formulaName, setFormulaName] = useState(''), [formulaText, setFormulaText] = useState(''), [actionError, setActionError] = useState(''), [collapsedGroups, setCollapsedGroups] = useState(new Set());
+  const validViews = Array.isArray(config.views) ? config.views.filter(view => view && typeof view === 'object' && !Array.isArray(view)) : [], views = validViews.length ? validViews : [{ type: 'table', name: '表格' }];
+  const index = Math.min(selectedView, views.length - 1), current = views[index], sort = current.sort || [];
+  const records = useMemo(() => baseRecords(files, metadata), [files, metadata]);
+  const randomValues = useMemo(() => new Map(), [path, index]);
+  const options = useMemo(() => ({ formulas: config.formulas || {}, summaries: config.summaries || {}, records, thisRecord: records.find(record => record.path === path), now: new Date(), randomValues }), [config.formulas, config.summaries, records, path, randomValues]);
+  const properties = useMemo(() => [...new Set(['file.name', 'file.basename', 'file.folder', 'file.path', 'file.ext', 'file.size', 'file.tags', 'file.links', 'file.embeds', 'file.backlinks', ...(records.some(record => record.file.ctime) ? ['file.ctime'] : []), ...(records.some(record => record.file.mtime) ? ['file.mtime'] : []), ...records.flatMap(record => Object.keys(record.props)), ...Object.keys(config.formulas || {}).map(name => 'formula.' + name)])], [records, config.formulas]);
+  const columns = Array.isArray(current.order) ? [...new Set(current.order.filter(column => typeof column === 'string' && column.trim()))] : ['file.name', ...properties.filter(p => !p.startsWith('file.') && !p.startsWith('formula.')).slice(0, 5), ...Object.keys(config.formulas || {}).map(name => 'formula.' + name), 'file.folder'];
+  const label = column => config.properties?.[column]?.displayName || ({ 'file.name': '文件', 'file.basename': '名称', 'file.folder': '文件夹', 'file.ext': '类型', 'file.size': '大小', 'file.path': '路径', 'file.tags': '标签', 'file.links': '链接' })[column] || column.replace(/^note\./, '');
   const result = useMemo(() => {
-    if (error) return { rows: [], failure: '' };
+    if (error) return { rows: [], groups: [], failure: '', cells: new Map(), totals: {} };
     let failure = '';
-    let rows = records.filter(record => {
-      try { return matchesBaseFilter(config.filters, record) && matchesBaseFilter(current.filters, record); } catch (e) { failure = e.message; return false; }
-    });
-    const q = search.toLocaleLowerCase();
-    if (q) rows = rows.filter(record => record.path.toLocaleLowerCase().includes(q) || Object.values(record.props).some(value => displayValue(value).toLocaleLowerCase().includes(q)));
-    const settings = sort ? [sort] : Array.isArray(current.sort) ? current.sort : [];
-    if (settings.length) rows.sort((a, b) => { for (const s of settings) { const av = propertyValue(a, s.property), bv = propertyValue(b, s.property); const comparison = typeof av === 'number' && typeof bv === 'number' ? av - bv : displayValue(av).localeCompare(displayValue(bv), undefined, { numeric: true }); if (comparison) return comparison * (s.direction === 'DESC' ? -1 : 1); } return a.path.localeCompare(b.path); });
-    if (Number.isFinite(current.limit) && current.limit > 0) rows = rows.slice(0, current.limit);
-    return { rows, failure };
-  }, [records, config, current, search, sort, error]);
+    let rows = records.filter(record => { try { return matchesBaseFilter(config.filters, record, options) && matchesBaseFilter(current.filters, record, options); } catch (issue) { failure = issue.message; return false; } });
+    const cells = new Map();
+    const getCell = (record, column) => {
+      const key = record.path + '\u0000' + column;
+      if (!cells.has(key)) { try { cells.set(key, { value: propertyValue(record, column, options) }); } catch (issue) { cells.set(key, { value: null, error: issue.message }); } }
+      return cells.get(key);
+    };
+    const query = search.toLocaleLowerCase().trim();
+    if (query) rows = rows.filter(record => record.path.toLocaleLowerCase().includes(query) || [...Object.keys(record.props), ...columns].some(column => displayValue(getCell(record, column).value).toLocaleLowerCase().includes(query)));
+    try { if (sort.length) rows = sortBaseRecords(rows, sort, options); } catch (issue) { failure = issue.message; }
+    if (Number.isInteger(current.limit) && current.limit > 0) rows = rows.slice(0, current.limit);
+    let groups = [{ key: '', value: null, rows }];
+    try { groups = groupBaseRecords(rows, current.groupBy, current.groupOrder, options); } catch (issue) { failure = issue.message; }
+    rows = groups.flatMap(group => group.rows);
+    for (const record of rows) for (const column of columns) getCell(record, column);
+    const totals = {};
+    for (const [column, name] of Object.entries(current.summaries || {})) { try { totals[column] = { value: summarizeBaseValues(name, rows.map(record => { const cell = getCell(record, column); if (cell.error) throw new Error(cell.error); return cell.value; }), options) }; } catch (issue) { totals[column] = { error: issue.message }; } }
+    return { rows, groups, failure, cells, totals };
+  }, [records, config, current, search, error, options]);
   const updateConfig = next => { if (!error) onChange?.(serializeBase(next)); };
-  const sortBy = property => { if (error) return; const previous = sort || current.sort?.[0]; const next = { property, direction: previous?.property === property && previous.direction !== 'DESC' ? 'DESC' : 'ASC' }; setSort(next); updateConfig({ ...config, views: views.map((view, i) => i === Math.min(selectedView, views.length - 1) ? { ...view, sort: [next] } : view) }); };
+  const updateView = transform => updateConfig({ ...config, views: views.map((view, at) => at === index ? transform({ ...view }) : view) });
+  const setColumns = order => updateView(view => ({ ...view, order }));
+  const sortBy = (property, multiple) => {
+    const previous = sort.find(item => item.property === property), next = { ...previous, property, direction: previous?.direction === 'ASC' ? 'DESC' : 'ASC' };
+    updateView(view => ({ ...view, sort: multiple ? previous ? sort.map(item => item.property === property ? next : item) : [...sort, next] : [next] }));
+  };
   const addFilter = () => {
     if (error) return;
-    let prop = filterProperty.startsWith('file.') ? filterProperty : /^\w+$/.test(filterProperty) ? filterProperty : `note[${JSON.stringify(filterProperty)}]`;
-    const literal = /^-?\d+(\.\d+)?$/.test(filterValue) || /^(true|false|null)$/.test(filterValue) ? filterValue : JSON.stringify(filterValue);
-    const expression = filterOperator === 'contains' ? `${prop}.contains(${JSON.stringify(filterValue)})` : `${prop} ${filterOperator} ${literal}`;
-    const existing = config.filters ? [config.filters] : [];
-    updateConfig({ ...config, filters: { and: [...existing, expression] } }); setFilterValue(''); setShowFilter(false);
+    try {
+      const prefix = filterProperty.startsWith('file.') ? 'file' : filterProperty.startsWith('formula.') ? 'formula' : 'note', key = filterProperty.replace(/^(?:file|note|formula)\./, ''), property = prefix + '[' + JSON.stringify(key) + ']';
+      const literal = /^-?\d+(\.\d+)?$/.test(filterValue) || /^(true|false|null)$/.test(filterValue) ? filterValue : JSON.stringify(filterValue);
+      const expression = filterOperator === 'isEmpty' ? property + '.isEmpty()' : ['contains', 'startsWith', 'endsWith'].includes(filterOperator) ? property + '.' + filterOperator + '(' + JSON.stringify(filterValue) + ')' : property + ' ' + filterOperator + ' ' + literal;
+      parseBaseExpression(expression);
+      const old = filterScope === 'global' ? config.filters : current.filters, next = { [filterLogic]: [...(old ? [old] : []), expression] };
+      if (filterScope === 'global') updateConfig({ ...config, filters: next }); else updateView(view => ({ ...view, filters: next }));
+      setFilterValue(''); setActionError('');
+    } catch (issue) { setActionError(issue.message); }
   };
-  const applySource = () => { const parsed = parseBase(sourceText); const issue = parsed.error || baseConfigurationError(parsed.config); if (issue) setSourceError(issue); else { onChange?.(sourceText); setSource(false); setSourceError(''); setSort(null); } };
+  const clearFilter = () => { if (filterScope === 'global') { const next = { ...config }; delete next.filters; updateConfig(next); } else updateView(view => { delete view.filters; return view; }); };
+  const saveFormula = () => {
+    try {
+      const name = formulaName.trim().replace(/^formula\./, ''); if (!name || ['constructor', '__proto__', 'prototype'].includes(name)) throw new Error('请输入有效公式名称。');
+      parseBaseExpression(formulaText);
+      updateConfig({ ...config, formulas: { ...config.formulas, [name]: formulaText }, views: views.map((view, at) => at === index ? { ...view, order: [...new Set([...columns, 'formula.' + name])] } : view) });
+      setActionError('');
+    } catch (issue) { setActionError(issue.message); }
+  };
+  const saveCell = async (record, column, next) => {
+    if (!onEditFile || !/\.md$/i.test(record.path)) throw new Error('此文件属性不可编辑。');
+    if (!Object.hasOwn(files, record.path)) throw new Error('文件已移除，请重新打开 Base。');
+    await onEditFile(record.path, updateBaseProperty(files[record.path], column, next));
+  };
+  const openSource = () => { setSourceText(value); setSourceError(''); setSource(true); };
+  const applySource = () => { const parsed = parseBase(sourceText), issue = parsed.error || baseConfigurationError(parsed.config); if (issue) setSourceError(issue); else { onChange?.(sourceText); setSource(false); setSourceError(''); } };
+  const summaryNames = ['Count', 'Average', 'Sum', 'Min', 'Max', 'Range', 'Median', 'Stddev', 'Earliest', 'Latest', 'Checked', 'Unchecked', 'Empty', 'Filled', 'Unique', ...Object.keys(config.summaries || {})];
   return <div className="vd-base vd-view">
-    <div className="vd-base-toolbar"><div className="vd-base-tabs">{views.map((view, i) => <button key={i} className={i === Math.min(selectedView, views.length - 1) ? 'active' : ''} onClick={() => { setSelectedView(i); setSort(null); }}><Table2 size={15} />{typeof view.name === 'string' ? view.name : `视图 ${i + 1}`}</button>)}</div><div className="vd-base-actions"><button disabled={!!error} onClick={() => setShowFilter(v => !v)}><Settings2 size={14} />筛选</button><IconButton label="编辑 Base 配置" onClick={() => { setSourceText(value); setSource(true); }}><Code2 size={17} /></IconButton></div></div>
-    <div className="vd-base-search"><div className="vd-search-field"><Search size={15} /><input aria-label="搜索数据库记录" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索文件或属性…" />{search && <IconButton label="清空搜索" onClick={() => setSearch('')}><X size={13} /></IconButton>}</div><span className="vd-muted">{result.rows.length} 个文件</span></div>
-    {showFilter && <div className="vd-base-filter"><select aria-label="筛选属性" value={filterProperty} onChange={e => setFilterProperty(e.target.value)}>{properties.map(prop => <option key={prop}>{prop}</option>)}</select><select aria-label="筛选运算符" value={filterOperator} onChange={e => setFilterOperator(e.target.value)}><option value="contains">包含</option><option value="==">等于</option><option value="!=">不等于</option><option value=">">大于</option><option value="<">小于</option></select><input aria-label="筛选值" placeholder="值" value={filterValue} onChange={e => setFilterValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addFilter(); }} /><button className="vd-primary-button" disabled={!!error} onClick={addFilter}>添加筛选</button>{config.filters && <button onClick={() => { const next = { ...config }; delete next.filters; updateConfig(next); }}>清空全局筛选</button>}</div>}
-    {(error || result.failure) && <div className="vd-error"><AlertCircle size={15} />{error || result.failure}。请编辑配置。</div>}
+    <div className="vd-base-toolbar"><div className="vd-base-tabs">{views.map((view, at) => <button key={at} className={at === index ? 'active' : ''} onClick={() => { setSelectedView(at); setCollapsedGroups(new Set()); }}><Table2 size={15} />{typeof view.name === 'string' ? view.name : '视图 ' + (at + 1)}</button>)}</div><div className="vd-base-actions">
+      <button disabled={!!error} onClick={() => setPanel(panel === 'filter' ? '' : 'filter')}><Settings2 size={14} />筛选</button><button disabled={!!error} onClick={() => setPanel(panel === 'columns' ? '' : 'columns')}>属性</button><button disabled={!!error} onClick={() => setPanel(panel === 'formulas' ? '' : 'formulas')}>公式</button><IconButton label="编辑 Base 配置" onClick={openSource}><Code2 size={17} /></IconButton>
+    </div></div>
+    <div className="vd-base-search"><div className="vd-search-field"><Search size={15} /><input aria-label="搜索数据库记录" value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索文件或属性…" />{search && <IconButton label="清空搜索" onClick={() => setSearch('')}><X size={13} /></IconButton>}</div><label className="vd-base-group-control">分组<select aria-label="分组属性" disabled={!!error} value={current.groupBy?.property || ''} onChange={event => updateView(view => { if (event.target.value) view.groupBy = { ...view.groupBy, property: event.target.value, direction: view.groupBy?.direction || 'ASC' }; else delete view.groupBy; delete view.groupOrder; return view; })}><option value="">无</option>{[...new Set([...properties, ...columns])].map(property => <option key={property} value={property}>{label(property)}</option>)}</select>{current.groupBy && <IconButton label="切换分组排序方向" onClick={() => updateView(view => ({ ...view, groupBy: { ...view.groupBy, direction: view.groupBy.direction === 'DESC' ? 'ASC' : 'DESC' } }))}>{current.groupBy.direction === 'DESC' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}</IconButton>}</label><span className="vd-muted">{result.rows.length} 个文件</span></div>
+    {panel === 'filter' && <div className="vd-base-filter"><select aria-label="筛选范围" value={filterScope} onChange={event => setFilterScope(event.target.value)}><option value="view">此视图</option><option value="global">所有视图</option></select><select aria-label="筛选逻辑" value={filterLogic} onChange={event => setFilterLogic(event.target.value)}><option value="and">全部满足</option><option value="or">任一满足</option><option value="not">均不满足</option></select><select aria-label="筛选属性" value={filterProperty} onChange={event => setFilterProperty(event.target.value)}>{[...new Set([...properties, ...columns])].map(property => <option key={property}>{property}</option>)}</select><select aria-label="筛选运算符" value={filterOperator} onChange={event => setFilterOperator(event.target.value)}><option value="contains">包含</option><option value="==">等于</option><option value="!=">不等于</option><option value=">">大于</option><option value=">=">大于等于</option><option value="<">小于</option><option value="<=">小于等于</option><option value="startsWith">开头为</option><option value="endsWith">结尾为</option><option value="isEmpty">为空</option></select>{filterOperator !== 'isEmpty' && <input aria-label="筛选值" placeholder="值" value={filterValue} onChange={event => setFilterValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') addFilter(); }} />}<button className="vd-primary-button" onClick={addFilter}>添加筛选</button><button onClick={clearFilter}>清除此范围筛选</button><code className="vd-base-filter-code">{JSON.stringify(filterScope === 'global' ? config.filters : current.filters) || '无筛选条件'}</code></div>}
+    {panel === 'columns' && <div className="vd-base-config-panel"><div className="vd-base-column-list">{[...new Set([...columns, ...properties])].map(column => <div key={column}><label><input type="checkbox" checked={columns.includes(column)} onChange={event => setColumns(event.target.checked ? [...columns, column] : columns.filter(item => item !== column))} />{column}</label>{columns.includes(column) && <><input aria-label={'显示名称 ' + column} placeholder={label(column)} defaultValue={config.properties?.[column]?.displayName || ''} key={value + column} onBlur={event => { if (event.target.value !== (config.properties?.[column]?.displayName || '')) updateConfig({ ...config, properties: { ...config.properties, [column]: { ...config.properties?.[column], displayName: event.target.value } } }); }} /><IconButton label={'前移列 ' + column} disabled={columns.indexOf(column) === 0} onClick={() => { const next = [...columns], at = next.indexOf(column); [next[at - 1], next[at]] = [next[at], next[at - 1]]; setColumns(next); }}><ArrowUp size={13} /></IconButton><IconButton label={'后移列 ' + column} disabled={columns.indexOf(column) === columns.length - 1} onClick={() => { const next = [...columns], at = next.indexOf(column); [next[at + 1], next[at]] = [next[at], next[at + 1]]; setColumns(next); }}><ArrowDown size={13} /></IconButton></>}</div>)}</div><div className="vd-base-new-column"><input aria-label="新增属性列" value={newColumn} onChange={event => setNewColumn(event.target.value)} placeholder="新增笔记属性名" /><button onClick={() => { const column = newColumn.trim(); if (column && !['__proto__', 'constructor', 'prototype'].includes(column)) { setColumns([...new Set([...columns, column])]); setNewColumn(''); } }}>添加列</button><button onClick={() => updateView(view => { delete view.sort; return view; })}>清除排序</button></div></div>}
+    {panel === 'formulas' && <div className="vd-base-config-panel"><div className="vd-base-formula-list">{Object.entries(config.formulas || {}).map(([name, expression]) => <button key={name} onClick={() => { setFormulaName(name); setFormulaText(expression); }}>{name}</button>)}</div><div className="vd-base-formula-editor"><input aria-label="公式名称" value={formulaName} onChange={event => setFormulaName(event.target.value)} placeholder="公式名称" /><input aria-label="公式表达式" value={formulaText} onChange={event => setFormulaText(event.target.value)} placeholder={'例如 (price * quantity).toFixed(2)'} spellCheck="false" /><button className="vd-primary-button" onClick={saveFormula}>保存公式</button></div><small className="vd-muted">使用 formula.名称 引用其他公式。数字、日期、列表计算和条件函数均可用于筛选。</small></div>}
+    {(error || result.failure || actionError) && <div className="vd-error"><AlertCircle size={15} />{error || result.failure || actionError}</div>}
     {typeof current.type === 'string' && current.type !== 'table' && <div className="vd-base-notice">“{current.type}” 布局尚未实现，当前使用表格展示同一组文件。</div>}
-    {(config.formulas || columns.some(column => column.startsWith('formula.'))) && <div className="vd-base-notice">公式列暂不计算；现有公式配置会完整保留。</div>}
-    <div className="vd-base-table-wrap"><table className="vd-base-table"><thead><tr><th className="vd-row-number">#</th>{columns.map(column => <th key={column}><button disabled={!!error} onClick={() => sortBy(column)}><span>{(typeof config.properties?.[column]?.displayName === 'string' ? config.properties[column].displayName : '') || ({ 'file.name': '文件', 'file.folder': '文件夹', 'file.ext': '类型' })[column] || column.replace(/^note\./, '')}</span>{(sort || current.sort?.[0])?.property === column && ((sort || current.sort?.[0]).direction === 'DESC' ? <ArrowDown size={13} /> : <ArrowUp size={13} />)}</button></th>)}</tr></thead><tbody>{result.rows.map((record, i) => <tr key={record.path}><td className="vd-row-number">{i + 1}</td>{columns.map(column => { const data = propertyValue(record, column); return <td key={column}>{column === 'file.name' || column === 'file.path' ? <button className="vd-base-file" onClick={() => onOpen?.(record.path)} title={record.path}><FileText size={14} />{displayValue(data)}</button> : Array.isArray(data) ? <span className="vd-base-tags">{data.map((item, j) => <span key={j}>{displayValue(item)}</span>)}</span> : typeof data === 'boolean' ? <input type="checkbox" checked={data} readOnly aria-label={`${column}: ${data}`} /> : <span title={displayValue(data)}>{displayValue(data) || <span className="vd-muted">—</span>}</span>}</td>; })}</tr>)}</tbody></table>{!result.rows.length && !error && !result.failure && <Empty>没有符合条件的文件。</Empty>}</div>
-    <footer className="vd-base-footer"><span>文件属性来自笔记 YAML。打开文件可编辑属性。</span><button onClick={() => { setSourceText(value); setSource(true); }}>配置列与视图 <CornerDownRight size={13} /></button></footer>
-    {source && <div className="vd-base-source"><header><strong>Base YAML 配置</strong><IconButton label="关闭配置" onClick={() => setSource(false)}><X size={18} /></IconButton></header><textarea value={sourceText} onChange={e => setSourceText(e.target.value)} spellCheck="false" aria-label="Base YAML 配置" /><p className="vd-muted">支持表格、文件属性、搜索、排序及常用逻辑筛选。公式、卡片布局与高级函数尚未实现。</p>{sourceError && <div className="vd-error">{sourceError}</div>}<button className="vd-primary-button" onClick={applySource}><Check size={16} />应用并保存</button></div>}
+    {current.groupOrder && <div className="vd-base-notice">当前配置仅展示 groupOrder 指定的分组。<button onClick={() => updateView(view => { delete view.groupOrder; return view; })}>显示全部分组</button></div>}
+    {!!sort.length && <div className="vd-base-sort-hint">排序：{sort.map(item => label(item.property) + (item.direction === 'DESC' ? ' ↓' : ' ↑')).join(' · ')}<span>Shift + 点击列标题可增加排序条件</span></div>}
+    <div className="vd-base-table-wrap"><table className="vd-base-table"><thead><tr><th className="vd-row-number">#</th>{columns.map(column => <th key={column}><button disabled={!!error} onClick={event => sortBy(column, event.shiftKey)}><span>{label(column)}</span>{sort.some(item => item.property === column) && (sort.find(item => item.property === column).direction === 'DESC' ? <ArrowDown size={13} /> : <ArrowUp size={13} />)}</button></th>)}</tr></thead><tbody>
+      {result.groups.map(group => <React.Fragment key={group.key}>{current.groupBy && <tr className="vd-base-group-row"><td colSpan={columns.length + 1}><button onClick={() => setCollapsedGroups(old => { const next = new Set(old); if (next.has(group.key)) next.delete(group.key); else next.add(group.key); return next; })} aria-expanded={!collapsedGroups.has(group.key)}><span>{collapsedGroups.has(group.key) ? '›' : '⌄'}</span>{displayValue(group.value) || '空'}<span className="vd-muted">{group.rows.length}</span></button></td></tr>}{!collapsedGroups.has(group.key) && group.rows.map(record => <tr key={record.path}><td className="vd-row-number">{result.rows.indexOf(record) + 1}</td>{columns.map(column => <td key={column}><BaseCell record={record} column={column} cell={result.cells.get(record.path + '\u0000' + column) || { value: null }} editable={!!onEditFile && /\.md$/i.test(record.path) && !record.error && !column.startsWith('file.') && !column.startsWith('formula.') && !error} onSave={saveCell} onOpen={onOpen} onNavigate={onNavigate} resolveAsset={resolveAsset} files={files} /></td>)}</tr>)}</React.Fragment>)}
+    </tbody><tfoot><tr><td className="vd-row-number">∑</td>{columns.map(column => <td key={column}><select aria-label={'汇总 ' + column} disabled={!!error} value={current.summaries?.[column] || ''} onChange={event => updateView(view => { const summaries = { ...view.summaries }; if (event.target.value) summaries[column] = event.target.value; else delete summaries[column]; return { ...view, summaries }; })}><option value="">汇总</option>{summaryNames.map(name => <option key={name}>{name}</option>)}</select>{result.totals[column] && <strong className={result.totals[column].error ? 'vd-base-cell-error' : ''} title={result.totals[column].error}>{result.totals[column].error ? '⚠' : displayValue(result.totals[column].value)}</strong>}</td>)}</tr></tfoot></table>{!result.rows.length && !error && !result.failure && <Empty>没有符合条件的文件。</Empty>}</div>
+    <footer className="vd-base-footer"><span>{onEditFile ? '双击笔记属性或点击编辑按钮保存到原文件。公式与文件属性为只读。' : '文件属性来自笔记 YAML。'} </span><button onClick={openSource}>配置视图 <CornerDownRight size={13} /></button></footer>
+    {source && <div className="vd-base-source"><header><strong>Base YAML 配置</strong><IconButton label="关闭配置" onClick={() => setSource(false)}><X size={18} /></IconButton></header><textarea value={sourceText} onChange={event => setSourceText(event.target.value)} spellCheck="false" aria-label="Base YAML 配置" /><p className="vd-muted">表格支持公式、嵌套筛选、多列排序、分组与汇总。正则表达式和其他布局尚未实现；日期格式支持常用年月日与时间标记。</p>{sourceError && <div className="vd-error">{sourceError}</div>}<button className="vd-primary-button" onClick={applySource}><Check size={16} />应用并保存</button></div>}
   </div>;
 }
 

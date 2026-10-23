@@ -1,0 +1,1 @@
+.vd-webviewer{display:flex;flex-direction:column;height:100%;min-height:0}.vd-web-toolbar{display:flex;align-items:center;gap:5px;padding:8px;border-bottom:1px solid var(--border)}.vd-web-toolbar button{padding:6px}.vd-web-toolbar input{flex:1;min-width:60px}.vd-web-host{flex:1;min-height:0;background:#fff}.vd-web-error{padding:10px;color:#ee9999;background:var(--panel)}

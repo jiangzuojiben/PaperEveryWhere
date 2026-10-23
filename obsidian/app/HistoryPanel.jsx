@@ -1,0 +1,7 @@
+import React,{useEffect,useState}from'react';
+export default function HistoryPanel({path,items,current='',readVersion,onRestore}){
+  const[selected,setSelected]=useState(items[0]?.id||''),[version,setVersion]=useState(null),[error,setError]=useState(''),[loading,setLoading]=useState(false);
+  useEffect(()=>{if(!selected)return;let live=true;setVersion(null);setError('');setLoading(true);readVersion(path,selected).then(value=>{if(live)setVersion(value);}).catch(error=>{if(live)setError(error.message);}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[path,selected]);
+  if(!items.length)return <p className="padded">尚无历史版本。修改并保存后会自动留下快照。</p>;
+  return <div className="history-browser"><aside>{items.map(item=><button key={item.id} className={item.id===selected?'selected':''} onClick={()=>setSelected(item.id)}><b>{new Date(item.timestamp||item.mtime).toLocaleString()}</b><small>{item.size} 字节</small></button>)}</aside><div className="history-preview">{error&&<p role="alert" className="error-text">{error}</p>}{loading?<p>正在读取历史版本…</p>:version?.encoding==='utf8'?<><div className="history-columns"><section><h4>历史内容</h4><pre>{version.content}</pre></section><section><h4>当前内容</h4><pre>{current}</pre></section></div><p className="muted">{version.content===current?'与当前内容相同':'历史内容与当前文件不同；恢复前将保留当前文件的新快照。'}</p></>:<p>二进制附件 · {version?.size||0} 字节</p>}<button className="primary" disabled={!version||loading} onClick={()=>onRestore(selected)}>恢复选中版本</button></div></div>;
+}

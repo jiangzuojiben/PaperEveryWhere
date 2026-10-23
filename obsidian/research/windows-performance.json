@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "status": "completed",
+  "startedAt": "2026-10-23T08:53:14.762Z",
+  "syntheticDataOnly": true,
+  "measuresUiLatency": false,
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.13.1",
+    "logicalCpus": 22,
+    "cpuModel": "Intel(R) Core(TM) Ultra 9 185H",
+    "totalMemoryGiB": 31.42,
+    "gcExposed": true,
+    "uvThreadpoolSize": "Node default"
+  },
+  "methodology": {
+    "sizes": [
+      100,
+      1000,
+      10000
+    ],
+    "warmRuns": 2,
+    "unpreparedLimitMs": 30000,
+    "bytesPerNote": 1536,
+    "internalReferencesPerNote": 2,
+    "folders": 10,
+    "fileWatcher": false,
+    "creationConcurrency": 32,
+    "coldMeaning": "First snapshot of a newly opened VaultStore. OS disk cache is not flushed; generated files may already be cached.",
+    "warmMeaning": "Repeated unchanged snapshots in the same process and store; VaultStore currently has no snapshot content cache.",
+    "heapMeaning": "heapUsed after minus before each stage, GC requested before timing when exposed; not peak memory or retained memory.",
+    "indexMeaning": "Sequential parseMarkdown over every note; unprepared getReferences receives the full path array and parses again, capped at 30 seconds after finishing the current note; prepared getReferences always processes all notes with createLinkIndex and already parsed metadata. Index preparation is timed separately. Partial results are not extrapolated. Chunk yields/progress are included in elapsed wall time.",
+    "exclusions": [
+      "Electron IPC",
+      "React render/commit",
+      "file tree DOM",
+      "editor input latency",
+      "OS cold disk cache",
+      "network/cloud",
+      "real user data"
+    ]
+  },
+  "sourceSha256": {
+    "desktop/vault-store.mjs": "72df767159189a65511c368953417be5ab10bbe40f3d89f1ffea3a8a9f028e25",
+    "core/vault.mjs": "3c4a213138461c0b262d9aef2aefd592794e8e84fec401551d9e9fc5dfd90ea2",
+    "app/App.jsx": "fa6582daa5eda944985c5cb08f4b44cf5258da9f5fc1aed425783fc6957bde9c",
+    "app/FileTree.jsx": "f1ef1a280467f94242e953cac5f0f697673e9ec1d3f804bedfbd29df0d477007"
+  },
+  "results": [
+    {
+      "files": 100,
+      "status": "completed",
+      "snapshotWarm": [
+        {
+          "elapsedMs": 27.88,
+          "heapBeforeBytes": 6630000,
+          "heapAfterBytes": 7494544,
+          "heapDeltaBytes": 864544,
+          "rssDeltaBytes": 2887680
+        },
+        {
+          "elapsedMs": 27.6,
+          "heapBeforeBytes": 6627008,
+          "heapAfterBytes": 7532392,
+          "heapDeltaBytes": 905384,
+          "rssDeltaBytes": -20480
+        }
+      ],
+      "fixtureCreationMs": 23.12,
+      "snapshotCold": {
+        "elapsedMs": 35.8,
+        "heapBeforeBytes": 6414224,
+        "heapAfterBytes": 7643768,
+        "heapDeltaBytes": 1229544,
+        "rssDeltaBytes": 1200128
+      },
+      "integrity": {
+        "verifiedFiles": 100,
+        "totalBytes": 153600,
+        "manifestSha256": "edc4aed26456199b7ea30a89dce7b5293c04ed5c32fb6e2d60a3e5bc052af330",
+        "allMtimesMatchSyntheticTimestamp": true,
+        "allContentHashesMatch": true
+      },
+      "parseMarkdown": {
+        "elapsedMs": 29.97,
+        "heapBeforeBytes": 6988640,
+        "heapAfterBytes": 10351760,
+        "heapDeltaBytes": 3363120,
+        "rssDeltaBytes": 3743744,
+        "parsedFiles": 100
+      },
+      "getReferencesUnprepared": {
+        "elapsedMs": 66.1,
+        "heapBeforeBytes": 8263352,
+        "heapAfterBytes": 8587112,
+        "heapDeltaBytes": 323760,
+        "rssDeltaBytes": 434176,
+        "status": "completed",
+        "indexedFiles": 100,
+        "totalFiles": 100,
+        "references": 200,
+        "resolvedReferences": 200
+      },
+      "createLinkIndex": {
+        "elapsedMs": 0.44,
+        "heapBeforeBytes": 8141760,
+        "heapAfterBytes": 8198720,
+        "heapDeltaBytes": 56960,
+        "rssDeltaBytes": 0
+      },
+      "getReferencesPrepared": {
+        "elapsedMs": 0.75,
+        "heapBeforeBytes": 8120888,
+        "heapAfterBytes": 8494792,
+        "heapDeltaBytes": 373904,
+        "rssDeltaBytes": 4096,
+        "status": "completed",
+        "indexedFiles": 100,
+        "references": 200,
+        "resolvedReferences": 200,
+        "comparedUnpreparedFiles": 100,
+        "sameReferencesForComparedPrefix": true
+      },
+      "sameSizeSameMtimeProbe": {
+        "mtimePreserved": true,
+        "sizePreserved": true,
+        "contentHashChanged": true,
+        "originalHashRestored": true,
+        "method": "VaultStore.read, also used by snapshot via readBytes"
+      }
+    },
+    {
+      "files": 1000,
+      "status": "completed",
+      "snapshotWarm": [
+        {
+          "elapsedMs": 233.38,
+          "heapBeforeBytes": 8317304,
+          "heapAfterBytes": 16464384,
+          "heapDeltaBytes": 8147080,
+          "rssDeltaBytes": 14778368
+        },
+        {
+          "elapsedMs": 221.5,
+          "heapBeforeBytes": 7754224,
+          "heapAfterBytes": 22862472,
+          "heapDeltaBytes": 15108248,
+          "rssDeltaBytes": 929792
+        }
+      ],
+      "fixtureCreationMs": 228.97,
+      "snapshotCold": {
+        "elapsedMs": 256.1,
+        "heapBeforeBytes": 8327312,
+        "heapAfterBytes": 17226976,
+        "heapDeltaBytes": 8899664,
+        "rssDeltaBytes": 9465856
+      },
+      "integrity": {
+        "verifiedFiles": 1000,
+        "totalBytes": 1536000,
+        "manifestSha256": "41624c7306b741de0e572e1e380c52d47564d68f5ca4ff8630dd3a9bda7c5296",
+        "allMtimesMatchSyntheticTimestamp": true,
+        "allContentHashesMatch": true
+      },
+      "parseMarkdown": {
+        "elapsedMs": 154.54,
+        "heapBeforeBytes": 11123424,
+        "heapAfterBytes": 16912400,
+        "heapDeltaBytes": 5788976,
+        "rssDeltaBytes": 37257216,
+        "parsedFiles": 1000
+      },
+      "getReferencesUnprepared": {
+        "elapsedMs": 4655.3,
+        "heapBeforeBytes": 13308288,
+        "heapAfterBytes": 27693432,
+        "heapDeltaBytes": 14385144,
+        "rssDeltaBytes": 782336,
+        "status": "completed",
+        "indexedFiles": 1000,
+        "totalFiles": 1000,
+        "references": 2000,
+        "resolvedReferences": 2000
+      },
+      "createLinkIndex": {
+        "elapsedMs": 2.23,
+        "heapBeforeBytes": 13739144,
+        "heapAfterBytes": 14200760,
+        "heapDeltaBytes": 461616,
+        "rssDeltaBytes": 0
+      },
+      "getReferencesPrepared": {
+        "elapsedMs": 8.28,
+        "heapBeforeBytes": 13268544,
+        "heapAfterBytes": 16681344,
+        "heapDeltaBytes": 3412800,
+        "rssDeltaBytes": 110592,
+        "status": "completed",
+        "indexedFiles": 1000,
+        "references": 2000,
+        "resolvedReferences": 2000,
+        "comparedUnpreparedFiles": 1000,
+        "sameReferencesForComparedPrefix": true
+      },
+      "sameSizeSameMtimeProbe": {
+        "mtimePreserved": true,
+        "sizePreserved": true,
+        "contentHashChanged": true,
+        "originalHashRestored": true,
+        "method": "VaultStore.read, also used by snapshot via readBytes"
+      }
+    },
+    {
+      "files": 10000,
+      "status": "completed",
+      "snapshotWarm": [
+        {
+          "elapsedMs": 2122.45,
+          "heapBeforeBytes": 8020080,
+          "heapAfterBytes": 75057920,
+          "heapDeltaBytes": 67037840,
+          "rssDeltaBytes": 3112960
+        },
+        {
+          "elapsedMs": 2233.63,
+          "heapBeforeBytes": 8024256,
+          "heapAfterBytes": 72495632,
+          "heapDeltaBytes": 64471376,
+          "rssDeltaBytes": 6164480
+        }
+      ],
+      "fixtureCreationMs": 2435.88,
+      "snapshotCold": {
+        "elapsedMs": 2468.2,
+        "heapBeforeBytes": 11293512,
+        "heapAfterBytes": 83043272,
+        "heapDeltaBytes": 71749760,
+        "rssDeltaBytes": 84361216
+      },
+      "integrity": {
+        "verifiedFiles": 10000,
+        "totalBytes": 15360000,
+        "manifestSha256": "c516372dc4df5b8004587dee871349178c1a724e348d5c8d95cd7c778e603b2f",
+        "allMtimesMatchSyntheticTimestamp": true,
+        "allContentHashesMatch": true
+      },
+      "parseMarkdown": {
+        "elapsedMs": 1064.33,
+        "heapBeforeBytes": 40782344,
+        "heapAfterBytes": 62896144,
+        "heapDeltaBytes": 22113800,
+        "rssDeltaBytes": 19193856,
+        "parsedFiles": 10000
+      },
+      "getReferencesUnprepared": {
+        "elapsedMs": 30043.65,
+        "heapBeforeBytes": 58068392,
+        "heapAfterBytes": 106749072,
+        "heapDeltaBytes": 48680680,
+        "rssDeltaBytes": 15523840,
+        "status": "time-limited",
+        "indexedFiles": 608,
+        "totalFiles": 10000,
+        "references": 1216,
+        "resolvedReferences": 1216,
+        "fullIndexLowerBoundMs": 30043.65,
+        "extrapolated": false
+      },
+      "createLinkIndex": {
+        "elapsedMs": 21.58,
+        "heapBeforeBytes": 58328208,
+        "heapAfterBytes": 63536832,
+        "heapDeltaBytes": 5208624,
+        "rssDeltaBytes": 1572864
+      },
+      "getReferencesPrepared": {
+        "elapsedMs": 77.66,
+        "heapBeforeBytes": 61155272,
+        "heapAfterBytes": 92772960,
+        "heapDeltaBytes": 31617688,
+        "rssDeltaBytes": 45056,
+        "status": "completed",
+        "indexedFiles": 10000,
+        "references": 20000,
+        "resolvedReferences": 20000,
+        "comparedUnpreparedFiles": 608,
+        "sameReferencesForComparedPrefix": true
+      },
+      "sameSizeSameMtimeProbe": {
+        "mtimePreserved": true,
+        "sizePreserved": true,
+        "contentHashChanged": true,
+        "originalHashRestored": true,
+        "method": "VaultStore.read, also used by snapshot via readBytes"
+      }
+    }
+  ],
+  "cleanup": {
+    "temporaryDataRemoved": true,
+    "boundaryVerified": true
+  },
+  "progress": {
+    "files": 10000,
+    "phase": "completed",
+    "completed": 10000,
+    "total": 10000,
+    "elapsedMs": 77.66
+  },
+  "sourceSha256After": {
+    "desktop/vault-store.mjs": "72df767159189a65511c368953417be5ab10bbe40f3d89f1ffea3a8a9f028e25",
+    "core/vault.mjs": "3c4a213138461c0b262d9aef2aefd592794e8e84fec401551d9e9fc5dfd90ea2",
+    "app/App.jsx": "fa6582daa5eda944985c5cb08f4b44cf5258da9f5fc1aed425783fc6957bde9c",
+    "app/FileTree.jsx": "f1ef1a280467f94242e953cac5f0f697673e9ec1d3f804bedfbd29df0d477007"
+  },
+  "sourceChangedDuringRun": [],
+  "finishedAt": "2026-10-23T08:54:02.240Z",
+  "priorInterruptedAttempt": {
+    "status": "interrupted-before-time-limit-was-added",
+    "syntheticDataOnly": true,
+    "syntheticFiles": 11100,
+    "temporaryDirectoryBasename": "vaultdesk-performance-usTOPD",
+    "temporaryDataRemoved": false,
+    "manualCleanupRequired": true,
+    "reason": "External termination did not execute finally. Recursive deletion and then manifest-verified individual deletion were both rejected by automatic approval with blocked by policy; no further deletion was attempted."
+  }
+}

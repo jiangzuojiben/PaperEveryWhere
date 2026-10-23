@@ -9,13 +9,14 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { VaultStore } from '../desktop/vault-store.mjs';
 import { cloudRequest, syncVault } from '../desktop/sync.mjs';
+import { listenForFetch } from './helpers/http-listener.mjs';
 
 test('desktop sync interoperates with the real self-hosted service', { skip: process.env.VAULTDESK_CLOUD_INTEGRATION !== '1', timeout: 30000 }, async (t) => {
   const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const python = process.env.VAULTDESK_CLOUD_PYTHON || path.join(project, '..', '.venv', 'Scripts', 'python.exe');
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'vaultdesk-real-cloud-'));
   const portProbe = net.createServer();
-  await new Promise((resolve) => portProbe.listen(0, '127.0.0.1', resolve));
+  await listenForFetch(portProbe);
   const port = portProbe.address().port;
   await new Promise((resolve) => portProbe.close(resolve));
   const child = spawn(python, ['-m','uvicorn','cloud.app:app','--host','127.0.0.1','--port',String(port),'--no-proxy-headers'], { cwd: project, env: { ...process.env, VAULTDESK_DB: path.join(directory, 'service.sqlite3') }, windowsHide: true, stdio: ['ignore','pipe','pipe'] });

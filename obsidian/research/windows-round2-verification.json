@@ -1,0 +1,169 @@
+{
+  "schema": "vaultdesk-windows-round2-verification-v1",
+  "date": "2026-10-23T09:16:53.903Z",
+  "version": "0.2.0",
+  "reference": "Obsidian core 1.13.7",
+  "runtime": "Electron 42.11.9",
+  "node": {
+    "command": "VAULTDESK_CLOUD_INTEGRATION=1 node --test --test-concurrency=8 tests/*.test.mjs",
+    "tests": 227,
+    "passed": 227,
+    "failed": 0,
+    "skipped": 0,
+    "confirmed": true
+  },
+  "python": {
+    "tests": 19,
+    "subtests": 23,
+    "warning": "upstream TestClient deprecation"
+  },
+  "build": {
+    "passed": true,
+    "warning": "large chunks"
+  },
+  "windows": {
+    "runId": "windows-1792745793133-e2381e",
+    "checks": [
+      {
+        "name": "separate vaults have isolated content and window lists",
+        "passed": true
+      },
+      {
+        "name": "same vault opens in a second native window",
+        "passed": true
+      },
+      {
+        "name": "simultaneous saves reject one stale writer and notify only the shared vault",
+        "passed": true
+      },
+      {
+        "name": "attachment capability URLs are limited to their owning window",
+        "passed": true
+      },
+      {
+        "name": "native File objects import binary bytes and fabricated File objects are rejected",
+        "passed": true
+      },
+      {
+        "name": "sync in one window flushes a live editor draft in every shared-vault window before upload",
+        "passed": true
+      },
+      {
+        "name": "each window saves an independent workspace",
+        "passed": true
+      },
+      {
+        "name": "all native windows keep background processing enabled",
+        "passed": true
+      },
+      {
+        "name": "graceful quit persists every open window",
+        "passed": true
+      },
+      {
+        "name": "restart restores all native windows with stable identities and saved workspaces",
+        "passed": true
+      },
+      {
+        "name": "closing one shared-vault window preserves the remaining window and updates session",
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "session": {
+    "runId": "session-1792745705712-e27fd6",
+    "checks": [
+      {
+        "name": "partial restore opens available vaults and retains the unavailable window identity",
+        "passed": true
+      },
+      {
+        "name": "session persistence waits until all available restore windows are ready",
+        "passed": true,
+        "detail": {
+          "writes": 1
+        }
+      },
+      {
+        "name": "reconnecting a missing vault restores its original window and saved workspace",
+        "passed": true
+      },
+      {
+        "name": "all missing vaults open a usable Welcome vault and preserve unavailable records",
+        "passed": true
+      },
+      {
+        "name": "a second launch reuses the Welcome window without duplicating or losing session records",
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "nativeFinal": {
+    "webReload": {
+      "before": {
+        "app": 1,
+        "web": 1
+      },
+      "after": {
+        "app": 1,
+        "web": 1
+      },
+      "mainControlsAfterReload": true
+    },
+    "syntheticImagePaste": {
+      "importedFiles": 1,
+      "bytes": 68,
+      "noteBodyPreserved": true,
+      "embedInserted": true
+    },
+    "history": {
+      "bothContentsPreviewed": true,
+      "restoreOnDisk": true
+    },
+    "pinnedTabReload": true,
+    "appConsole": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "limitations": [
+      "Synthetic ClipboardEvent and generated File; this is not an OS clipboard gesture",
+      "Manual UI tests are limited to the documented paths"
+    ]
+  },
+  "sources": {
+    "app/App.jsx": "fa01403730a175bfb8df6804d02c6a8337404d043588672801481b59937c5422",
+    "app/Editor.jsx": "b616fd2c06e5358958b513b83294bab283cf1c3e027d83bfdb9fb54f7df5a96d",
+    "app/Views.jsx": "21fe5e6a64807d476e12233bbf3aea50512d28d763c7afb0cb28fc561f5ad82f",
+    "app/FileTree.jsx": "f1ef1a280467f94242e953cac5f0f697673e9ec1d3f804bedfbd29df0d477007",
+    "core/vault.mjs": "3c4a213138461c0b262d9aef2aefd592794e8e84fec401551d9e9fc5dfd90ea2",
+    "core/workspace.mjs": "e7b556f3c8b5b649bab086115d59a6826b80e4eb3777edcf5348c5a437c3cbce",
+    "core/windows-extras.mjs": "7d4615f2eee8702e1f58634affd2c04f0ea816c76e77dafc7ad3453ab1d260d0",
+    "desktop/host.cjs": "3434e5d1c945b7eb7cf5558e4e05e68d433c3e103a20b1aba084843f7ef0a3e5",
+    "desktop/vault-store.mjs": "93688b8dd54ce046d6e26bcab8f11195f179f99228a766d1fdf30da1a90c7ef1",
+    "desktop/sync.mjs": "9c3eb17d487e08e98f603f41a0cfd3cddbc2ac1cdfb495c161edee47fb250fff",
+    "desktop/web-viewer.cjs": "d4d2fc576f4994b382458af07dcb9053ba2ea4d9ee8d33921b3a572b0793c583"
+  },
+  "package": {
+    "version": "0.2.0",
+    "electron": "42.11.9",
+    "codeSigned": false,
+    "dependencyNotices": 153,
+    "nativeSmoke": {
+      "actualReleaseExecutable": true,
+      "editorDiskSave": true,
+      "newSameVaultWindowCount": 2,
+      "pdfPages": 4,
+      "pdfCanvas": {
+        "width": 1154,
+        "height": 1539
+      },
+      "chineseTextLayer": true,
+      "appConsole": {
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  }
+}

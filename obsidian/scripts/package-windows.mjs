@@ -16,7 +16,7 @@ const runtime = path.join(root, 'node_modules', 'electron', 'dist');
 const exists = async (target) => fs.access(target).then(() => true, (error) => { if (error.code === 'ENOENT') return false; throw error; });
 if (await exists(output)) throw new Error('Output already exists. Preserve it and choose a new version before packaging again.');
 
-const requiredFiles = ['dist/index.html', 'desktop/main.cjs', 'core/vault.mjs', 'node_modules/yaml/package.json', 'README.md', 'THIRD_PARTY_NOTICES.md', 'scripts/start-cloud.ps1', 'cloud/app.py', 'compose.yaml'];
+const requiredFiles = ['dist/index.html', 'desktop/main.cjs', 'desktop/host.cjs', 'desktop/preload.cjs', 'desktop/window-registry.mjs', 'desktop/attachments.mjs', 'desktop/web-viewer.cjs', 'desktop/sync.mjs', 'core/vault.mjs', 'node_modules/yaml/package.json', 'README.md', 'THIRD_PARTY_NOTICES.md', 'scripts/start-cloud.ps1', 'cloud/app.py', 'compose.yaml'];
 for (const filename of requiredFiles) await fs.access(path.join(root, filename));
 for (const filename of ['electron.exe', 'LICENSE', 'LICENSES.chromium.html', 'version']) await fs.access(path.join(runtime, filename));
 // Only a clean open-source Electron distribution may supply the runtime.
@@ -88,13 +88,17 @@ await fs.unlink(path.join(output, 'resources', 'default_app.asar')).catch((error
 const app = path.join(output, 'resources', 'app');
 await fs.mkdir(path.join(app, 'node_modules'), { recursive: true });
 for (const folder of ['dist', 'desktop', 'core']) await fs.cp(path.join(root, folder), path.join(app, folder), { recursive: true });
-await fs.cp(path.join(root, 'node_modules', 'yaml'), path.join(app, 'node_modules', 'yaml'), { recursive: true });
-await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: 'vaultdesk', productName: 'VaultDesk', version: manifest.version, type: 'module', main: 'desktop/main.cjs', dependencies: { yaml: manifest.dependencies.yaml } }, null, 2));
+for(const dependency of ['yaml','moment'])await fs.cp(path.join(root,'node_modules',dependency),path.join(app,'node_modules',dependency),{recursive:true});
+await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: 'vaultdesk', productName: 'VaultDesk', version: manifest.version, type: 'module', main: 'desktop/main.cjs', dependencies: { yaml: manifest.dependencies.yaml,moment:manifest.dependencies.moment } }, null, 2));
 await fs.copyFile(projectLicense, path.join(app, 'LICENSE'));
 await fs.copyFile(projectLicense, path.join(output, 'LICENSE-VaultDesk.txt'));
 
 for (const filename of ['README.md', 'THIRD_PARTY_NOTICES.md', 'compose.yaml']) await fs.copyFile(path.join(root, filename), path.join(output, filename));
 await fs.cp(path.join(root, 'docs'), path.join(output, 'docs'), { recursive: true });
+await fs.cp(path.join(root, 'research'), path.join(output, 'research'), {
+  recursive: true,
+  filter: (source) => path.relative(path.join(root, 'research'), source).split(path.sep)[0] !== 'raw',
+});
 await fs.mkdir(path.join(output, 'desktop'), { recursive: true });
 await fs.copyFile(path.join(root, 'desktop', 'README.md'), path.join(output, 'desktop', 'README.md'));
 await fs.mkdir(path.join(output, 'scripts'), { recursive: true });
