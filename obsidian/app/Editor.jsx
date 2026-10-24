@@ -1,3 +1,4 @@
+import {pluginEditorContext, editorInfoField, editorLivePreviewField} from './plugin-editor-context.mjs';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Annotation, Compartment, EditorSelection, EditorState, StateEffect, StateField, Transaction} from '@codemirror/state';
 import {Decoration, EditorView, WidgetType, drawSelection, dropCursor, highlightActiveLine, highlightSpecialChars, keymap, rectangularSelection} from '@codemirror/view';
@@ -278,7 +279,7 @@ function replaceFromOutside(view, value) {
   view.dispatch({changes: {from: start, to: oldEnd, insert: value.slice(start, newEnd)}, annotations: [externalUpdate.of(true), Transaction.addToHistory.of(false), isolateHistory.of('full')]});
 }
 
-export default function Editor({path = '', value = '', onChange, mode: requestedMode = 'live', onNavigate, resolveAsset, processMarkdown, files = {}, onReady, onSelectionChange, onViewStateChange, initialViewState, viewStateRevision = 0, onPasteFiles, commands = [], readOnly = false}) {
+export default function Editor({path = '', value = '', onChange, mode: requestedMode = 'live', onNavigate, resolveAsset, processMarkdown, pluginExtensions, files = {}, onReady, onSelectionChange, onViewStateChange, initialViewState, viewStateRevision = 0, onPasteFiles, commands = [], readOnly = false}) {
   const [mode, setMode] = useState(requestedMode);
   const [shownPath, setShownPath] = useState(path);
   const mount = useRef(null), preview = useRef(null), viewRef = useRef(null), states = useRef(new Map()), scrollPositions = useRef(new Map()), readingScrollPositions = useRef(new Map());
@@ -291,6 +292,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   // Updating props to B must never send the tail of A's composition to B.
   if (currentPath.current === path) context.current = incoming;
   const [hover, setHover] = useState(null), hoverTimer = useRef(null), hoverTarget = useRef(null);
+  const pluginSlot = useRef(new Compartment()), pluginContextSlot = useRef(new Compartment());
   const modeSlot = useRef(new Compartment()), readOnlySlot = useRef(new Compartment()), liveField = useRef(null);
   const displayed = context.current;
   const html = useMemo(() => mode === 'reading' ? renderMarkdown(displayed.value, {path: displayed.path, files: displayed.files, rootPath: displayed.readOnly ? '__read_only__' : displayed.path}) : '', [displayed.value, displayed.path, displayed.files, mode, displayed.readOnly]);
@@ -303,6 +305,10 @@ export default function Editor({path = '', value = '', onChange, mode: requested
   };
   const queueViewState = () => { if (viewStateTimer.current === null) viewStateTimer.current = setTimeout(publishViewState, 80); };
 
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view && context.current.path === path) view.dispatch({effects: [pluginSlot.current.reconfigure(pluginExtensions || []), pluginContextSlot.current.reconfigure(pluginEditorContext.of({file: {path}, livePreview: context.current.mode === 'live'}))]});
+  }, [pluginExtensions, path, shownPath, mode]);
   useEffect(() => {
     let timer;
     const apply = () => { if (compositionPending() || currentPath.current !== requestedContext.current.path) timer = setTimeout(apply, 80); else setMode(requestedMode); };
@@ -327,6 +333,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
       return false;
     };
     const extensions = [
+      pluginSlot.current.of(pluginExtensions || []), pluginContextSlot.current.of(pluginEditorContext.of({file: {path: context.current.path}, livePreview: context.current.mode === 'live'})), editorInfoField, editorLivePreviewField,
       editorTheme, EditorView.lineWrapping, EditorState.allowMultipleSelections.of(true), highlightSpecialChars(), history(), drawSelection(), dropCursor(), rectangularSelection(),
       indentOnInput(), markdown({base: markdownLanguage, extensions: [frontmatterExtension]}), syntaxHighlighting(markdownHighlight), foldGutter(), closeBrackets(), autocompletion({override: [completionSource(context)]}),
       search({top: true}), highlightSelectionMatches(),
@@ -448,7 +455,7 @@ export default function Editor({path = '', value = '', onChange, mode: requested
         pendingRestore.current = {path: next.path, state: next.initialViewState || (cached ? {path: next.path, scroll: scrollPositions.current.get(next.path)} : undefined)};
         currentPath.current = next.path; context.current = next;
         view.setState(cached || view.makeState(next.value));
-        view.dispatch({effects: [modeSlot.current.reconfigure(next.mode === 'live' ? [liveField.current] : [highlightActiveLine()]), readOnlySlot.current.reconfigure([EditorState.readOnly.of(next.readOnly), EditorView.editable.of(!next.readOnly)])]});
+        view.dispatch({effects: [pluginContextSlot.current.reconfigure(pluginEditorContext.of({file: {path: next.path}, livePreview: next.mode === 'live'})), modeSlot.current.reconfigure(next.mode === 'live' ? [liveField.current] : [highlightActiveLine()]), readOnlySlot.current.reconfigure([EditorState.readOnly.of(next.readOnly), EditorView.editable.of(!next.readOnly)])]});
         view.scrollDOM.scrollTop = scrollPositions.current.get(next.path)?.top || 0;
         view.scrollDOM.scrollLeft = scrollPositions.current.get(next.path)?.left || 0;
         context.current.onSelectionChange?.(selectionInfo(view.state));

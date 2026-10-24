@@ -8,3 +8,7 @@
 .plugin-view-container>.view-content { padding:16px; }
 .plugin-view-unavailable { display:grid; place-items:center; padding:24px; min-height:160px; color:var(--text-muted,#aaa); text-align:center; }
 .plugin-codeblock { padding:12px; }
+
+.plugin-view-container { display:flex; flex-direction:column; overflow:hidden; }
+.plugin-view-container>.view-header { flex-shrink:0; }
+.plugin-view-container>.view-content { flex:1; min-height:0; overflow:auto; }

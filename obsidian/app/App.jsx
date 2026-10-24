@@ -1647,6 +1647,7 @@ export default function App() {
         viewStateRevision={viewStateRevision}
         onViewStateChange={(state,path) => recordViewState(state,path,panes[i]?.id)}
         processMarkdown={processPluginMarkdown}
+        pluginExtensions={pluginUI.editorExtensions}
         commands={commandItems.map(([name, , action]) => ({
           name,
           run: action,

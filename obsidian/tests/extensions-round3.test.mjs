@@ -344,3 +344,23 @@ test('requestUrl parses JSON lazily and permits HTTP errors only with throw=fals
   assert.equal(allowed.status, 418);
   assert.equal(allowed.text, text);
 });
+
+test('file extensions open FileView with original lifecycle and release CSS/extensions on disable', async t => {
+  installDom(t); document.head = new FakeElement('head');
+  const f = fixture({'Home.md':'Home','Sample.pptx':Buffer.from([80,75,3,4])});
+  t.after(() => f.host.dispose()); t.after(() => {delete globalThis.__fileViewProbe;});
+  await f.host.enable({id:'file-view-lab',name:'FileView'}, `const {Plugin,FileView}=require('obsidian'); const events=[];globalThis.__fileViewProbe={events};module.exports=class extends Plugin {onload(){this.registerView('lab-file',leaf=>new class extends FileView {getViewType(){return 'lab-file'}onOpen(){events.push(['open',this.file])}onLoadFile(file){events.push(['load',file.path,this.file===file])}onUnloadFile(file){events.push(['unload',file.path,this.file===file])}}(leaf));this.registerExtensions(['pptx'],'lab-file');this.registerEditorExtension([]);}};`, '.file-view-test {color:red}');
+  const {plugin} = await enable(t,f,'file-view-driver');
+  const leaf=plugin.app.workspace.getLeaf();
+  await leaf.openFile(plugin.app.vault.getFileByPath('Sample.pptx'));
+  assert.equal(leaf.getViewState().type,'lab-file');
+  assert.equal(leaf.getViewState().state.file,'Sample.pptx');
+  assert.deepEqual(globalThis.__fileViewProbe.events,[['open',null],['load','Sample.pptx',true]]);
+  assert.equal(document.head.children.length,1);
+  assert.equal(f.host.getUI().editorExtensions.length,1);
+  await f.host.disable('file-view-lab');
+  assert.deepEqual(globalThis.__fileViewProbe.events.at(-1),['unload','Sample.pptx',true]);
+  assert.equal(document.head.children.length,0);
+  assert.equal(f.host.getUI().editorExtensions.length,0);
+  assert.equal(leaf.getViewState().state.file,'Sample.pptx');
+});

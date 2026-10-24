@@ -1,3 +1,8 @@
+import browserPath from 'path-browserify';
+import {editorInfoField, editorLivePreviewField} from './plugin-editor-context.mjs';
+import * as cmState from '@codemirror/state';
+import * as cmView from '@codemirror/view';
+import * as cmLanguage from '@codemirror/language';
 import { parseMarkdown, getReferences, resolveLink, normalizePath as normalizeCorePath } from '../core/vault.mjs';
 import { decodeBinary, encodeBinary, toArrayBuffer, transformFrontmatter } from './plugin-files.mjs';
 import { createPluginViews } from './plugin-views.mjs';
@@ -13,6 +18,21 @@ export class PluginCompatibilityError extends Error {
   }
 }
 const unsupported = (api, detail) => { throw new PluginCompatibilityError(api, detail); };
+export class Scope {
+  constructor(parent = null) { this.parent = parent; this.keys = []; }
+  register(modifiers, key, func) { const entry = {modifiers, key, func}; this.keys.push(entry); return entry; }
+  unregister(entry) { this.keys = this.keys.filter(value => value !== entry); }
+  handle(event) {
+    for (const entry of this.keys) {
+      const mods = entry.modifiers || [], mac = /Mac/.test(globalThis.navigator?.platform || '');
+      if (String(event.key).toLowerCase() !== String(entry.key).toLowerCase()) continue;
+      const ctrl = mods.includes('Ctrl') || (mods.includes('Mod') && !mac), meta = mods.includes('Meta') || (mods.includes('Mod') && mac);
+      if (!!event.ctrlKey !== ctrl || !!event.metaKey !== meta || !!event.shiftKey !== mods.includes('Shift') || !!event.altKey !== mods.includes('Alt')) continue;
+      if (entry.func(event, entry) === false) { event.preventDefault(); event.stopPropagation(); return false; }
+    }
+    return this.parent?.handle(event);
+  }
+}
 const copy = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const dirname = value => value.slice(0, Math.max(0, value.lastIndexOf('/')));
@@ -141,6 +161,7 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
   if (!bridge) throw new TypeError('A vault bridge is required');
   const records = new Map(), commands = new Map(), objects = new Map(), overlays = new Map(), processQueues = new Map(), memoryData = new Map();
   const ribbon = new Map(), statusBar = new Map(), uiListeners = new Set(), surfaces = new Map();
+  const editorExtensions = new Map();
   let uiRevision = 0, markdownRevision = 0, uiSnapshot = Object.freeze({ revision: 0, markdownRevision: 0, ribbon: [], statusBar: [], views: [] }), viewRuntime, markdownRuntime;
   const hasExternalEvents = typeof onEvent === 'function';
   let disposed = false, disposePromise, revision = 0, sourceRecords = normalizeRecords(getFiles()), latestRecords = sourceRecords, vaultIdentity = 'session', pulling = false, pullAgain = false;
@@ -148,7 +169,7 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
   function publishUI() {
     let views = [];
     try { views = viewRuntime?.uiViews() || []; } catch (error) { report(error); }
-    uiSnapshot = Object.freeze({ revision: ++uiRevision, markdownRevision, ribbon: [...ribbon.values()], statusBar: [...statusBar.values()], views });
+    uiSnapshot = Object.freeze({ revision: ++uiRevision, markdownRevision, ribbon: [...ribbon.values()], statusBar: [...statusBar.values()], editorExtensions: [...editorExtensions.values()], views });
     for (const listener of uiListeners) { try { listener(); } catch (error) { report(error); } }
   }
   function mountSurface(name, element) {
@@ -356,6 +377,8 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       trash: async (file, system = false) => { ensureActive(); if (system) unsupported('app.vault.trash(system=true)', 'Only the application recycle bin is supported.'); const p = filePathOf(file, true), before = new Map(index()); await needBridge('trash')(p); const after = new Map([...before].filter(([name]) => name !== p && !name.startsWith(p + '/'))); applyChanges(before, after); },
       delete: () => unsupported('app.vault.delete', 'Permanent deletion is unavailable. Use app.vault.trash(file, false).'),
       adapter: strictApi('app.vault.adapter', {
+        getBasePath: () => { ensureActive(); return vaultIdentity; },
+        getFullPath: path => { ensureActive(); return vaultIdentity.replace(/[\\/]$/, '') + '/' + safePath(path); },
         exists: async p => !!vault.getAbstractFileByPath(p),
         read: async p => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.read(file); },
         readBinary: async p => { const file = vault.getFileByPath(p); if (!file) throw new Error('File not found: ' + p); return vault.readBinary(file); },
@@ -415,7 +438,7 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       },
       onLayoutReady: callback => { ensureActive(); let live = true; const off = track(() => { live = false; }); queueMicrotask(() => { if (live && !record.cancelled && !disposed) try { Promise.resolve(callback()).catch(report); } catch (error) { report(error); } }); return { off }; },
     } });
-    const { workspace, View, ItemView, MarkdownView, WorkspaceLeaf, Editor } = views;
+    const { workspace, View, ItemView, MarkdownView, WorkspaceLeaf, Editor, FileView } = views;
     const markdown = markdownRuntime.forPlugin({ record, ensureActive, track });
     class MarkdownRenderer {
       static async render(value, source, element, sourcePath = '', component) {
@@ -459,7 +482,7 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       for (const key of ['arrayBuffer', 'text', 'json']) Object.defineProperty(response, key, { get: () => response.then(result => result[key]) });
       return response;
     }
-    app = strictApi('app', { vault, workspace, metadataCache,
+    app = strictApi('app', { scope: new Scope(), vault, workspace, metadataCache,
       fileManager: strictApi('app.fileManager', {
         renameFile: async (file, next) => { ensureActive(); await renameFile(file, next, true); },
         processFrontMatter: async (file, callback, options) => { ensureActive(); assertWriteOptions(options); await vault.process(file, source => transformFrontmatter(source, callback)); },
@@ -503,9 +526,10 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       async loadData() { if (record.state === 'disabled') throw new Error('Plugin has been unloaded'); const key = `vaultdesk:plugin-data:${encodeURIComponent(record.vaultIdentity)}:${record.manifest.id}`; const raw = globalThis.localStorage?.getItem(key) ?? memoryData.get(key); return raw ? JSON.parse(raw) : null; }
       async saveData(value) { if (record.state === 'disabled') throw new Error('Plugin has been unloaded'); const key = `vaultdesk:plugin-data:${encodeURIComponent(record.vaultIdentity)}:${record.manifest.id}`; const raw = JSON.stringify(value); if (raw === undefined) throw new TypeError('Plugin data must be JSON serializable'); if (globalThis.localStorage) localStorage.setItem(key, raw); else memoryData.set(key, raw); }
       registerView(type, creator) { return views.registerView(type, creator); }
+      registerExtensions(extensions, type) { return views.registerExtensions(extensions, type); }
+      registerEditorExtension(extension) { ensureActive(); if (extension == null) throw new TypeError("Editor extension is required"); const key = Symbol(); editorExtensions.set(key, extension); track(() => {editorExtensions.delete(key); publishUI();}); publishUI(); }
       registerMarkdownPostProcessor(callback, sortOrder) { return markdown.registerMarkdownPostProcessor(callback, sortOrder); }
       registerMarkdownCodeBlockProcessor(language, callback, sortOrder) { return markdown.registerMarkdownCodeBlockProcessor(language, callback, sortOrder); }
-      registerEditorExtension() { return unsupported('Plugin.registerEditorExtension'); }
       addRibbonIcon(icon, title, callback) {
         ensureActive(); if (!surfaces.has('ribbon')) unsupported('Plugin.addRibbonIcon', 'The application has not mounted a plugin ribbon.');
         if (typeof callback !== 'function') throw new TypeError('Ribbon callback must be a function');
@@ -523,11 +547,12 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
     }
     const userAgent = globalThis.navigator?.userAgent || '';
     const Platform = Object.freeze({ isDesktopApp: !!globalThis.window?.vaultdesk, isMobileApp: false, isDesktop: true, isMobile: false, isPhone: false, isTablet: false, isWin: /Windows/i.test(userAgent), isMacOS: /Macintosh/i.test(userAgent), isLinux: /Linux/i.test(userAgent), isAndroid: false, isIos: false, isSafari: /Safari/.test(userAgent) && !/Chrome|Chromium/.test(userAgent) });
-    const api = strictApi('obsidian', { Plugin, PluginSettingTab, Setting, Modal, Notice, View, ItemView, WorkspaceLeaf, Editor, TFile, TFolder, Component, MarkdownView, MarkdownRenderChild: markdown.MarkdownRenderChild, MarkdownRenderer, Platform, apiVersion: '0.0.0', requestUrl, request: async input => (await requestUrl(input)).text,
+    const api = strictApi('obsidian', { Plugin, PluginSettingTab, Setting, Modal, Notice, Scope, View, ItemView, FileView, WorkspaceLeaf, Editor, TFile, TFolder, Component, MarkdownView, MarkdownRenderChild: markdown.MarkdownRenderChild, MarkdownRenderer, Platform, apiVersion: '0.0.0', editorInfoField, editorLivePreviewField, getLanguage: () => (globalThis.navigator?.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en', requestUrl, request: async input => (await requestUrl(input)).text,
       getIcon: id => { ensureActive(); return getPluginIcon(id); }, setIcon: (element, id) => { ensureActive(); setPluginIcon(element, id); },
       normalizePath: value => { const normalized = normalizeCorePath(assertText(value, 'Path')); if (normalized == null) throw new Error('Path escapes the vault'); return normalized; },
     });
-    return { app, api, require: name => { if (name !== 'obsidian') unsupported(`require(${JSON.stringify(name)})`, 'Only require("obsidian") is supported. Node/Electron and additional packages are not available.'); return api; } };
+    const domFactory = (tag, options) => { ensureActive(); const root = createElement('div'), element = root.createEl(tag, options); element.remove(); return element; };
+    return { app, api, createEl: domFactory, createDiv: options => domFactory('div', options), createSpan: options => domFactory('span', options), process: Object.freeze({platform: Platform.isWin ? 'win32' : Platform.isMacOS ? 'darwin' : 'linux', arch: 'x64'}), require: name => { const modules = {path: browserPath, '@codemirror/state': cmState, '@codemirror/view': cmView, '@codemirror/language': cmLanguage}; if (own(modules, name)) return modules[name]; if (name !== 'obsidian') unsupported(`require(${JSON.stringify(name)})`, 'Supported modules: obsidian, path, @codemirror/state, @codemirror/view, @codemirror/language. Node/Electron modules are not available.'); return api; } };
   }
 
   async function cleanup(record) {
@@ -544,7 +569,7 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
       if (errors.length) throw new AggregateError(errors, `Plugin ${record.manifest.id} cleanup failed`);
     })(); return record.cleanupPromise;
   }
-  function enable(pluginDescriptor, source) {
+  function enable(pluginDescriptor, source, styles = "") {
     if (disposed) return Promise.reject(new Error('Extension host has been disposed'));
     const manifest = { ...pluginDescriptor };
     if (!/^[a-z0-9][a-z0-9._-]{0,79}$/.test(manifest.id || '')) return Promise.reject(new TypeError('Plugin manifest needs a safe id'));
@@ -559,10 +584,11 @@ export function createExtensionHost({ bridge, getFiles = () => [], getActivePath
         if (typeof bridge.snapshot === 'function') { const snapshot = await bridge.snapshot(); vaultIdentity = String(snapshot.vaultPath || vaultIdentity); }
         record.vaultIdentity = vaultIdentity;
         if (record.cancelled || disposed) throw new Error(`Plugin ${manifest.id} enable was cancelled`);
+        if (styles) { if (typeof styles !== 'string' || styles.length > 1048576) throw new Error('Invalid plugin CSS'); const style = createElement('style'); style.dataset.pluginId = manifest.id; style.textContent = styles; document.head.appendChild(style); record.cleanups.push(() => style.remove()); }
         const context = createPluginApi(record);
         contextKey = `__vaultdesk_plugin_${globalThis.crypto?.randomUUID?.().replaceAll('-', '') || Math.random().toString(36).slice(2)}`;
         Object.defineProperty(globalThis, contextKey, { value: context, configurable: true });
-        const code = `const context = globalThis[${JSON.stringify(contextKey)}];\nconst module = { exports: {} };\n(function(require, module, exports) {\n${source}\n})(context.require, module, module.exports);\nexport default module.exports;\n`;
+        const code = `const context = globalThis[${JSON.stringify(contextKey)}];\nconst module = { exports: {} };\nconst {createEl, createDiv, createSpan} = context;\n(function(require, module, exports, process) {\n${source}\n})(context.require, module, module.exports, context.process);\nexport default module.exports;\n`;
         let imported;
         try { imported = await moduleLoader(code); }
         catch (error) { if (error instanceof PluginCompatibilityError) throw error; throw new Error(`Plugin ${manifest.id} could not load: ${error.message}. Renderer CSP must allow script-src 'self' blob:; unsafe-eval is not required.`, { cause: error }); }

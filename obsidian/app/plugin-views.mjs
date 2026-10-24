@@ -4,6 +4,7 @@ const clone = value => value == null ? value : structuredClone(value);
 
 /** Bridges public leaf operations to real application tabs and split panes. */
 export function createPluginViews({ Component, createElement, decorate, strictApi, unsupported, workspaceAdapter, getActivePath, openFile, getEditor, fileAt, filePathOf, currentRecords, report, changed, emit, hasExternalEvents }) {
+  const extensions = new Map();
   const factories = new Map(), mounted = new Map(), containers = new Map(), versions = new Map(), restoring = new Set();
   const adapter = workspaceAdapter;
   const need = name => {
@@ -22,7 +23,7 @@ export function createPluginViews({ Component, createElement, decorate, strictAp
   const isCurrent = (id, version) => versions.get(id) === version;
 
   class View extends Component {
-    constructor(leaf) { super(); this.leaf = leaf; this.app = leaf.app; this.containerEl = leaf.containerEl; this.containerEl.empty(); this.navigation = true; this.icon = 'file'; this._state = {}; this._ephemeral = {}; }
+    constructor(leaf) { super(); this.leaf = leaf; this.app = leaf.app; this.containerEl = leaf.containerEl; this.containerEl.empty(); this.scope = this.app.scope; this.registerDomEvent(this.containerEl, 'keydown', event => this.scope?.handle?.(event)); this.navigation = true; this.icon = 'file'; this._state = {}; this._ephemeral = {}; }
     getViewType() { return 'plugin-view'; }
     getDisplayText() { return this.getViewType(); }
     getIcon() { return this.icon; }
@@ -108,6 +109,14 @@ export function createPluginViews({ Component, createElement, decorate, strictAp
     for (const result of settled) if (result.status === 'rejected') report(result.reason);
     const opening = [];
     for (const state of all()) {
+      const path = state.state?.file, extension = path?.split('.').pop()?.toLowerCase();
+      const route = extensions.get(extension);
+      if (route && state.type !== route.type && !factories.has(state.type) && !restoring.has(state.id)) {
+        restoring.add(state.id);
+        opening.push(route.wrapLeaf(state.id).setViewState({type: route.type, state: {file: path}}).catch(report).finally(() => restoring.delete(state.id)));
+      }
+    }
+    for (const state of all()) {
       const registration = factories.get(state.type);
       if (!registration || registration.record.cancelled || mounted.has(state.id) || restoring.has(state.id)) continue;
       restoring.add(state.id);
@@ -118,6 +127,23 @@ export function createPluginViews({ Component, createElement, decorate, strictAp
 
   function forPlugin({ record, ensureActive, track, events, getApp, metadataCache }) {
     const leaves = new Map(), markdownViews = new Map();
+    class FileView extends ItemView {
+      constructor(leaf) { super(leaf); this.file = null; this.allowNoFile = false; }
+      getState() { return {...super.getState(), ...(this.file ? {file: this.file.path} : {})}; }
+      async setState(state = {}, result) {
+        const next = state.file ? fileAt(state.file) : null;
+        if (state.file && !next) throw new Error('File does not exist: ' + state.file);
+        if (next?.path !== this.file?.path) {
+          if (this.file) await this.onUnloadFile(this.file);
+          this.file = next;
+          if (next) await this.onLoadFile(next);
+        }
+        await super.setState(state, result);
+      }
+      async onLoadFile(file) {}
+      async onUnloadFile(file) {}
+      async onClose() { if (this.file) await this.onUnloadFile(this.file); this.file = null; }
+    }
     class MarkdownView extends ItemView {
       constructor(leaf) { super(leaf); this._editors = new Map(); }
       get file() { ensureActive(); const path = descriptor(this.leaf.id)?.state?.file; return path ? fileAt(path) : null; }
@@ -152,7 +178,10 @@ export function createPluginViews({ Component, createElement, decorate, strictAp
         return state ? { type: state.type, state: clone(entry?.view?.getState?.() ?? state.state ?? {}), ...(state.pinned == null ? {} : { pinned: !!state.pinned }) } : { type: 'empty', state: {} };
       }
       async openFile(file, state) {
-        ensureActive(); const path = filePathOf(file), version = increment(this.id);
+        ensureActive(); const path = filePathOf(file);
+        const route = extensions.get(path.split('.').pop().toLowerCase());
+        if (route) return this.setViewState({type: route.type, state: {...state, file: path}});
+        const version = increment(this.id);
         await closeEntry(this.id); ensureActive();
         if (!isCurrent(this.id, version)) throw new Error('A newer view operation replaced this open request');
         if (adapter) await need('openFile')(this.id, path, state);
@@ -284,7 +313,16 @@ export function createPluginViews({ Component, createElement, decorate, strictAp
       });
       queueMicrotask(() => { if (!record.cancelled) void syncWorkspace().catch(report); });
     }
-    return { workspace, View, ItemView, MarkdownView, WorkspaceLeaf, Editor: PluginEditor, registerView, activeEditorContext, editorContext, wrapLeaf };
+    function registerExtensions(values, type) {
+      ensureActive();
+      if (!factories.has(type) || factories.get(type).record !== record) throw new Error('Register the view before its extensions');
+      if (!Array.isArray(values) || !values.length || values.some(e => typeof e !== 'string' || !/^[a-z0-9]+$/i.test(e))) throw new TypeError('Invalid file extensions');
+      for (const value of values) if (['md','pdf','canvas','base'].includes(value.toLowerCase()) || extensions.has(value.toLowerCase())) throw new Error('Extension already registered: ' + value);
+      for (const value of values) extensions.set(value.toLowerCase(), {type, record, wrapLeaf});
+      track(() => {for (const [ext, route] of extensions) if (route.record === record) extensions.delete(ext);});
+      queueMicrotask(() => {if (!record.cancelled) void syncWorkspace().catch(report);});
+    }
+    return { workspace, View, ItemView, FileView, MarkdownView, WorkspaceLeaf, Editor: PluginEditor, registerView, registerExtensions, activeEditorContext, editorContext, wrapLeaf };
   }
 
   function uiViews() { return [...mounted.values()].filter(entry => entry.view && !entry.closed).map(entry => ({ leafId: entry.leafId, type: entry.type, title: entry.view.getDisplayText(), icon: entry.view.getIcon(), element: entry.view.containerEl })); }

@@ -110,7 +110,7 @@ test('file-open uses external UI events once and falls back only when no event s
 test('Node imports and unsupported APIs fail explicitly without leaving a plugin or loader context', async t => {
   const f = fixture(); t.after(() => f.host.dispose());
   for (const name of ['fs', 'node:path', 'electron', './helper']) {
-    await assert.rejects(f.host.enable({ id: 'unsupported' }, `require(${JSON.stringify(name)});`), error => error instanceof PluginCompatibilityError && error.message.includes('Only require("obsidian")'));
+    await assert.rejects(f.host.enable({ id: 'unsupported' }, `require(${JSON.stringify(name)});`), error => error instanceof PluginCompatibilityError && error.message.includes('Supported modules:'));
     assert.deepEqual(f.host.list(), []);
   }
   await assert.rejects(f.host.enable({ id: 'unsupported' }, `const { FileSystemAdapter } = require('obsidian');`), /obsidian.FileSystemAdapter/);

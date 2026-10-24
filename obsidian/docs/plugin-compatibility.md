@@ -6,7 +6,7 @@
 
 - 导入 `manifest.json` 和 `main.js` 仅保存源文件；集成界面必须在用户明确启用后才调用 `host.enable(manifest, source)`，不能在导入、页面初始化或库切换时自动执行源码。
 - 已启用插件在应用渲染进程的 JavaScript 环境中执行。**这是受信任代码，不是隔离沙箱。** 插件能访问同一页面的 DOM、浏览器全局对象及该页面暴露的能力；有限 `require` 列表不能限制这些全局能力。
-- `require` 只接受 `obsidian`。`fs`、`electron`、相对路径和其他包会报 `PluginCompatibilityError`。没有独立文件解析器；插件依赖必须预先打包进 `main.js`。
+- `require` 接受 `obsidian`、浏览器纯路径 `path` 和与编辑器共享的 `@codemirror/state`、`@codemirror/view`、`@codemirror/language`。`fs`、`electron`、相对路径和其他包会报 `PluginCompatibilityError`。没有独立文件解析器；插件依赖必须预先打包进 `main.js`。
 - 宿主使用 Blob ES module 包装 CommonJS，不调用 `eval` 或 `Function`。渲染器 CSP 必须允许 `script-src 'self' blob:`，不需要 `unsafe-eval`。生产加载器在导入结束后释放 Blob URL。
 - 插件文件 API 只接受库内相对路径，拒绝越界、绝对路径、空字节及 `.obsidian`、`.vaultdesk`、`.git` 配置目录。此规则只约束宿主提供的文件 API，不是对插件全局 JavaScript 的安全隔离。
 - 库身份变化时，宿主停用已启用插件。重新启用仍需用户明确操作。插件数据按启用时的库身份分区，卸载阶段保存的数据不会写入新库分区。
@@ -54,7 +54,7 @@
 
 `addCommand` 支持 `callback` / `checkCallback` 与 `editorCallback` / `editorCheckCallback`，返回并修改传入的同一个命令对象：ID 加 `<plugin-id>:`，名称加 `<Plugin Name>: `。执行直接调用 `checking=false`，不预先调用 `checking=true`；全局 `checkCallback` 优先。编辑器命令仅在真实可写的源码或实时预览编辑器中运行，阅读、输入法组合、切换中或只读时不可执行。已登记命令即使当前不能编辑，`executeCommandById` 仍返回 `true`。插件停用后旧回调立即失效。`editor-change` 传入该 leaf 缓存的 Editor 和 MarkdownView，`info.editor === editor`。
 
-Editor 支持全文、单行、范围、选区、多选区、光标、位置/偏移换算、`transaction`、滚动、焦点及 undo/redo。位置为从零开始的 UTF-16 `{line,ch}`。事务变化使用变更前坐标，选区使用变更后坐标；同一次事务可一次撤销。保留的 Editor 引用不能在 leaf 改开其他文件后修改新文件。源码和实时预览使用同一公共适配器；不暴露底层 CodeMirror 对象或扩展注册。
+Editor 支持全文、单行、范围、选区、多选区、光标、位置/偏移换算、`transaction`、滚动、焦点及 undo/redo。位置为从零开始的 UTF-16 `{line,ch}`。事务变化使用变更前坐标，选区使用变更后坐标；同一次事务可一次撤销。保留的 Editor 引用不能在 leaf 改开其他文件后修改新文件。源码和实时预览使用同一公共适配器；0.4.0 支持与编辑器同实例的 CodeMirror state/view/language 模块及 registerEditorExtension；editorInfoField 当前提供 file.path，editorLivePreviewField 提供模式状态，未覆盖全部原版字段。
 
 `loadData` / `saveData` 使用按库、插件分区的浏览器 `localStorage`；没有 `localStorage` 时使用宿主内存，不读写 `.obsidian/plugins/<id>/data.json`。
 
@@ -66,9 +66,9 @@ Ribbon 和状态项同步插入已挂载的真实应用容器，返回可点击/
 
 ## 明确不支持
 
-以下调用会给出兼容性错误：Node/Electron 模块、未知 `obsidian` 导出、未知 `app` / vault / workspace / metadata API、无真实编辑器时读取 `MarkdownView.editor`、`registerEditorExtension`、无宿主 UI 容器时添加 Ribbon/状态栏、永久删除和系统回收站。
+以下调用会给出兼容性错误：Node/Electron 模块、未知 `obsidian` 导出、未知 `app` / vault / workspace / metadata API、无真实编辑器时读取 `MarkdownView.editor`、无宿主 UI 容器时添加 Ribbon/状态栏、永久删除和系统回收站。
 
-未列出的类实例方法也不属于兼容范围，可能表现为普通 JavaScript 方法不存在错误。未实现主题/CSS 插件安装、完整 SVG 图标目录、Obsidian 私有对象、CodeMirror 扩展、插件间依赖解析、动态包导入、浮动窗口、移动端或社区插件目录。不能从有限 fixture 推断任意社区插件兼容。
+未列出的类实例方法也不属于兼容范围，可能表现为普通 JavaScript 方法不存在错误。未实现主题商店或整套主题安装、完整 SVG 图标目录、Obsidian 私有对象、未验的 CodeMirror 扩展及其他模块、插件间依赖解析、动态包导入、浮动窗口、移动端或社区插件目录。不能从有限 fixture 推断任意社区插件兼容。
 
 ## 宿主集成合同
 
@@ -153,3 +153,7 @@ module.exports = class AppendExample extends Plugin {
 最终 0.3.1 打包程序还通过独立的命名布局与 loopback HTTP 桌面验收：视图内存计数 2 保存、增加到 3 后恢复为 2；含 `file` 自定义字段的公开布局往返保留类型和状态；HTTP promise/text/json/ArrayBuffer、文本别名及 404 两种处理共 4 项通过。另通过真实分屏克隆及渲染器重载验收：两个视图独立显示 3/4，重载并明确重新启用插件后，pane ID、自定义 leaf token、类型及 payload 保持，计数恢复为 3/4。插件恢复证据限于渲染器重载，没有覆盖插件视图的进程重启。该补充插件未在参考程序运行，独立记录于 [验收说明](windows-round3-plugin-ui-verification.md)。
 
 公开声明参考：[官方 API 类型](https://github.com/obsidianmd/obsidian-api/blob/master/obsidian.d.ts) 与 [Editor 文档](https://docs.obsidian.md/Plugins/Editor/Editor)。本轮早期 API 探针与局限见 [Windows 第三轮记录](windows-round3-reference.md)，同一冻结插件的双端结果见 [第三轮插件桌面验收](windows-round3-plugin-ui-verification.md)。两类证据分开记录；同脚本检查通过也不等于所有事件次数、界面细节或未测参数均相同。
+
+## 0.4.0 PPT 插件追加
+
+增加 FileView 文件生命周期、registerExtensions 路由、Scope 键位与可选 styles.css 导入/卸载。未修改 Office Viewer 0.2.5、PPT Viewer 1.8.2 的插件源码；有限实际验收见 [PPT 插件记录](windows-ppt-plugin-verification.md)。PPT Viewer 使用自带兼容预览；Node、PowerPoint/LibreOffice 转换、PDF 导出和系统外部打开仍不支持。两个插件会争用 pptx 扩展，请分别启用。

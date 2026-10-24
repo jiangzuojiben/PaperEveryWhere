@@ -1,6 +1,6 @@
 {
   "name": "vaultdesk",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.cjs",
@@ -29,6 +29,7 @@
     "markdown-it-footnote": "^4.0.0",
     "mermaid": "^11.6.0",
     "moment": "2.31.0",
+    "path-browserify": "1.0.1",
     "pdfjs-dist": "6.4.299",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

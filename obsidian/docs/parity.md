@@ -161,3 +161,7 @@ REA 浏览器场景的后续计划在 [research/README.md](../research/README.md
 第二轮记录说明：E2 的组合事件与文件事件、A2 的图片粘贴均使用合成事件，不能替代 Windows 原生 IME 或系统剪贴板手势。X2 使用开发服务器与隔离浏览器库；W2/A2/C3 使用原生 Electron，各自测试源与操作仍有限。P2 是宿主与纯函数基准，没有 UI 延迟结论。
 
 第三轮 U3/A3/V3/L3 已更新到同一 0.3.1 打包产物。L3 的正常进程重启与 V3 的 renderer 重载属于不同范围；自定义插件视图进程恢复、任意布局、后台长期任务、生产网络与大库界面延迟仍待验。
+
+## 0.4.0 后续 PPT 插件子集
+
+[独立追加报告](windows-ppt-plugin-verification.md)与[打包记录](../research/windows-ppt-plugin-verification.json)分别记录 Office Viewer 0.2.5 和 PPT Viewer 1.8.2 的 PPTX 阅读。后者为自带兼容预览，不包含 Node/原生转换器。该子集不能外推完整社区插件或全部 CodeMirror API；旧轮次产物身份与计数仍作为历史保留。
